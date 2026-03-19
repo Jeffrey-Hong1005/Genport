@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GENPORT — AI 맞춤형 ETF 서비스</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ════ RESET & ROOT ════ */
+:root{
+  --bg:#04080f;--bg2:#080f1a;--bg3:#0c1524;--bg4:#101e32;
+  --border:#0f2040;--b2:#162a4a;--b3:#1e3a5f;
+  --accent:#0ea5e9;--a2:#38bdf8;
+  --green:#10b981;--red:#ef4444;--gold:#f59e0b;--purple:#a78bfa;
+  --text:#e2eaf4;--muted:#4a6080;--muted2:#6b88a8;--white:#f0f6ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px;}
+input,button,select,textarea{font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:none;}
+button{cursor:pointer;border:none;}
+a{text-decoration:none;color:inherit;}
+
+/* ════ ROUTER ════ */
+.page{display:none;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeUp .3s ease forwards;}
+
+/* ════ NAV ════ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;
+  background:rgba(4,8,15,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:16px;}
+.nav-logo{display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0;}
+.nav-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:#04080f;}
+.nav-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--white);letter-spacing:-.5px;}
+.nav-sep{flex:1;}
+.nav-links{display:flex;align-items:center;gap:4px;list-style:none;}
+.nav-link{padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted2);cursor:pointer;transition:all .2s;font-weight:500;}
+.nav-link:hover{color:var(--white);background:rgba(255,255,255,.04);}
+.nav-link.active{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.nav-user{display:flex;align-items:center;gap:9px;cursor:pointer;}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--a2));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#04080f;flex-shrink:0;}
+.nav-username{font-size:13px;color:var(--text);font-weight:500;}
+.btn-cta{padding:7px 16px;background:var(--accent);color:#04080f;border-radius:8px;font-size:13px;font-weight:700;transition:opacity .2s;}
+.btn-cta:hover{opacity:.85;}
+.btn-outline-sm{padding:7px 14px;background:transparent;color:var(--muted2);border:1px solid var(--b2);border-radius:8px;font-size:13px;font-weight:500;transition:all .2s;}
+.btn-outline-sm:hover{border-color:var(--accent);color:var(--a2);}
+
+/* TICKER */
+.ticker{overflow:hidden;padding:7px 0;background:var(--bg3);border-bottom:1px solid var(--border);margin-top:60px;}
+.ticker-inner{display:flex;animation:tick 35s linear infinite;white-space:nowrap;}
+@keyframes tick{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.ti{display:inline-flex;align-items:center;gap:7px;padding:0 20px;font-family:'DM Mono',monospace;font-size:11px;border-right:1px solid var(--border);}
+.t-n{color:var(--muted2);}.t-v{color:var(--white);font-weight:500;}
+.t-u{color:var(--green);}.t-d{color:var(--red);}
+
+/* ════ APP SHELL (로그인 후) ════ */
+.app-shell{display:flex;min-height:calc(100vh - 88px);}
+
+/* SIDEBAR */
+.sidebar{width:212px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:16px 0;
+  position:sticky;top:88px;height:calc(100vh - 88px);overflow-y:auto;}
+.sb-sec{padding:0 10px;margin-bottom:18px;}
+.sb-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2.5px;padding:0 8px;margin-bottom:6px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted2);font-weight:500;transition:all .2s;position:relative;}
+.sb-item:hover{background:var(--bg3);color:var(--text);}
+.sb-item.active{background:rgba(14,165,233,.1);color:var(--a2);border:1px solid rgba(14,165,233,.18);}
+.sb-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+.sb-badge{margin-left:auto;background:var(--accent);color:#04080f;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;font-family:'DM Mono',monospace;}
+.sb-new{margin-left:auto;background:var(--green);color:#04080f;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;}
+.sb-push{margin-top:auto;}
+.sb-user{margin:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.sb-user-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--a2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#04080f;margin-bottom:8px;}
+.sb-user-name{font-size:13px;font-weight:700;color:var(--white);}
+.sb-user-plan{font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);margin-top:3px;}
+
+/* MAIN CONTENT */
+.main-content{flex:1;overflow-y:auto;min-height:calc(100vh - 88px);}
+.view{display:none;padding:26px;}
+.view.active{display:block;}
+
+/* ════ COMMON COMPONENTS ════ */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;}
+.panel-title{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--white);margin-bottom:4px;}
+.panel-sub{font-size:12px;color:var(--muted2);margin-bottom:16px;}
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.sec-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);letter-spacing:3px;margin-bottom:8px;}
+.sec-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,3vw,36px);color:var(--white);letter-spacing:-1px;line-height:1.15;margin-bottom:12px;}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.mc-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:7px;}
+.mc-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--white);letter-spacing:-1px;line-height:1;}
+.mc-val.up{color:var(--green);}.mc-val.dn{color:var(--red);}
+.mc-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.alloc-row{margin-bottom:9px;}
+.alloc-hdr{display:flex;justify-content:space-between;margin-bottom:4px;}
+.alloc-name{font-size:12px;color:var(--muted2);}
+.alloc-pct{font-size:12px;font-family:'DM Mono',monospace;font-weight:600;}
+.alloc-track{height:5px;background:var(--bg);border-radius:99px;}
+.alloc-fill{height:100%;border-radius:99px;transition:width 1s ease;}
+.tag{font-size:10px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:99px;}
+.alert{padding:10px 13px;border-radius:9px;font-size:12px;margin-bottom:8px;display:flex;gap:9px;align-items:flex-start;line-height:1.5;}
+.al-success{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:var(--green);}
+.al-info{background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);color:var(--a2);}
+.al-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--gold);}
+.al-err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red);}
+.btn-primary{padding:11px 22px;background:var(--accent);color:#04080f;border-radius:10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:7px;transition:all .2s;border:none;}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
+.btn-primary:disabled{background:var(--bg3);color:var(--muted);cursor:not-allowed;transform:none;}
+.btn-ghost{padding:9px 16px;background:transparent;color:var(--muted2);border:1px solid var(--b2);border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-ghost:hover{border-color:var(--b2);color:var(--text);}
+.tab-row{display:flex;gap:0;background:var(--bg3);border-radius:9px;padding:3px;margin-bottom:16px;}
+.tab-btn{flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:600;background:transparent;color:var(--muted2);border:none;cursor:pointer;transition:all .2s;}
+.tab-btn.active{background:var(--bg2);color:var(--white);}
+.spinner{width:32px;height:32px;border:2px solid var(--b2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;gap:12px;}
+.loading-title{font-size:14px;color:var(--text);font-weight:600;}
+.loading-sub{font-size:12px;color:var(--muted);text-align:center;line-height:1.6;}
+.prog-track{width:200px;height:3px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-top:4px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--a2));animation:progAnim 1.8s ease-in-out infinite;}
+@keyframes progAnim{0%{width:5%;margin-left:0;}50%{width:50%;margin-left:25%;}100%{width:5%;margin-left:95%;}}
+.api-stub{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);padding:2px 8px;border-radius:4px;}
+
+/* ════ LANDING ════ */
+.hero{min-height:calc(100vh - 88px);display:flex;align-items:center;padding:80px 5%;position:relative;overflow:hidden;}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(14,165,233,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,.03) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,black 30%,transparent 100%);}
+.hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,233,.1),transparent 65%);top:-100px;right:-80px;pointer-events:none;}
+.hero-content{position:relative;z-index:1;max-width:640px;}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;background:rgba(14,165,233,.07);border:1px solid rgba(14,165,233,.2);border-radius:99px;font-size:11px;color:var(--a2);font-weight:600;letter-spacing:.5px;margin-bottom:24px;font-family:'DM Mono',monospace;}
+.hero-badge::before{content:'';width:5px;height:5px;background:var(--accent);border-radius:50%;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(34px,5vw,60px);font-weight:800;line-height:1.1;color:var(--white);letter-spacing:-2px;margin-bottom:20px;}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#0ea5e9,#38bdf8,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:15px;color:var(--muted2);line-height:1.8;max-width:480px;margin-bottom:32px;}
+.hero-btns{display:flex;gap:10px;flex-wrap:wrap;}
+.hero-stats{display:flex;gap:32px;margin-top:44px;padding-top:32px;border-top:1px solid var(--border);}
+.hs-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--white);letter-spacing:-1px;}
+.hs-num span{color:var(--accent);}
+.hs-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+.hero-visual{position:absolute;right:5%;top:50%;transform:translateY(-50%);width:360px;}
+.preview-card{background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:18px;position:relative;overflow:hidden;}
+.preview-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0ea5e9,#38bdf8,#10b981);}
+.pc-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0;}
+.pc-m{background:var(--bg3);border-radius:8px;padding:9px;text-align:center;}
+.pc-mv{font-family:'DM Mono',monospace;font-size:13px;color:var(--a2);}
+.pc-ml{font-size:9px;color:var(--muted);margin-top:2px;}
+.pc-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.pc-bn{font-size:10px;color:var(--muted2);width:52px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pc-bt{flex:1;height:4px;background:var(--bg3);border-radius:99px;}
+.pc-bf{height:100%;border-radius:99px;}
+.pc-bp{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted2);width:26px;}
+.float-c{position:absolute;background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:9px 12px;animation:floatA 4s ease-in-out infinite;}
+@keyframes floatA{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+.fc1{top:-34px;right:-12px;}.fc2{bottom:-26px;left:-12px;animation-delay:2s;}
+.fc-l{color:var(--muted);font-size:9px;margin-bottom:2px;font-family:'DM Mono',monospace;}
+.fc-v{color:var(--white);font-weight:700;font-size:12px;font-family:'Syne',sans-serif;}
+.fc-s{color:var(--green);font-size:10px;}
+.landing-sec{padding:80px 5%;}
+.landing-sec.dark{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;max-width:1080px;margin:48px auto 0;}
+.steps-grid::before{content:'';position:absolute;top:24px;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,var(--b2),var(--b2),transparent);}
+.step-box{padding:0 14px;text-align:center;}
+.step-circle{width:48px;height:48px;border-radius:50%;background:var(--bg);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--accent);margin:0 auto 16px;position:relative;z-index:1;}
+.step-box.hl .step-circle{background:var(--accent);color:#04080f;border-color:var(--accent);box-shadow:0 0 20px rgba(14,165,233,.4);}
+.step-t{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--white);margin-bottom:6px;}
+.step-d{font-size:11px;color:var(--muted2);line-height:1.6;}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px;max-width:1080px;}
+.feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;transition:all .3s;}
+.feat-card:hover{border-color:var(--b2);transform:translateY(-2px);}
+.feat-card.wide{grid-column:span 2;display:flex;gap:18px;}
+.feat-icon{width:40px;height:40px;background:var(--bg3);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;border:1px solid var(--border);flex-shrink:0;}
+.feat-t{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--white);margin-bottom:6px;}
+.feat-d{font-size:12px;color:var(--muted2);line-height:1.7;}
+.stats-band{padding:48px 5%;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.stats-inner{display:grid;grid-template-columns:repeat(4,1fr);max-width:900px;margin:0 auto;text-align:center;}
+.si{padding:14px;border-right:1px solid var(--border);}
+.si:last-child{border-right:none;}
+.si-val{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--white);letter-spacing:-2px;line-height:1;}
+.si-val span{color:var(--accent);}
+.si-lbl{font-size:11px;color:var(--muted);margin-top:6px;}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px;max-width:860px;}
+.p-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px 24px;position:relative;transition:transform .3s;}
+.p-card:hover{transform:translateY(-3px);}
+.p-card.feat{border-color:var(--accent);background:linear-gradient(135deg,rgba(14,165,233,.07),rgba(8,15,26,1));}
+.p-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#04080f;font-size:9px;font-weight:700;padding:2px 12px;border-radius:99px;white-space:nowrap;font-family:'DM Mono',monospace;}
+.p-plan{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:2px;margin-bottom:9px;}
+.p-price{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--white);letter-spacing:-2px;}
+.p-price span{font-size:13px;color:var(--muted2);font-weight:400;}
+.p-desc{font-size:11px;color:var(--muted);margin:7px 0 20px;line-height:1.5;}
+.p-feats{list-style:none;margin-bottom:22px;}
+.p-feats li{font-size:11px;color:var(--muted2);padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+.p-feats li:last-child{border-bottom:none;}
+.p-feats li::before{content:'◈';color:var(--accent);font-size:7px;flex-shrink:0;}
+.btn-plan{width:100%;padding:10px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-pl-ol{background:transparent;border:1px solid var(--b2);color:var(--text);}
+.btn-pl-ol:hover{border-color:var(--accent);color:var(--a2);}
+.btn-pl-fl{background:var(--accent);color:#04080f;border:none;}
+.btn-pl-fl:hover{box-shadow:0 6px 18px rgba(14,165,233,.3);}
+footer{background:var(--bg);border-top:1px solid var(--border);padding:48px 5% 32px;}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px;max-width:1080px;margin:0 auto 32px;}
+.f-brand-n{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--white);margin-bottom:10px;}
+.f-brand-d{font-size:11px;color:var(--muted);line-height:1.7;max-width:240px;}
+.f-col-t{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--white);margin-bottom:12px;}
+.f-links{list-style:none;display:flex;flex-direction:column;gap:8px;}
+.f-links li{font-size:11px;color:var(--muted);cursor:pointer;transition:color .2s;}
+.f-links li:hover{color:var(--a2);}
+.f-bottom{max-width:1080px;margin:0 auto;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);}
+
+/* ════ AUTH MODAL ════ */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--b2);border-radius:20px;padding:32px;max-width:400px;width:92%;position:relative;animation:fadeUp .3s ease;}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--bg3);border:none;color:var(--muted2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.modal-tabs{display:flex;background:var(--bg3);border-radius:9px;padding:3px;margin-bottom:22px;}
+.modal-tab{flex:1;padding:8px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted2);border:none;transition:all .2s;}
+.modal-tab.active{background:var(--bg2);color:var(--white);}
+.modal-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--white);margin-bottom:5px;}
+.modal-sub{font-size:12px;color:var(--muted2);margin-bottom:20px;}
+.social-btn{width:100%;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s;margin-bottom:9px;border:1px solid var(--b2);background:var(--bg3);color:var(--text);}
+.social-btn:hover{border-color:var(--b3);background:var(--bg4);}
+.social-btn.google{border-color:rgba(234,67,53,.25);background:rgba(234,67,53,.05);}
+.social-btn.google:hover{border-color:rgba(234,67,53,.4);}
+.social-btn.kakao{border-color:rgba(255,200,0,.25);background:rgba(255,200,0,.05);color:#ffe066;}
+.social-btn.kakao:hover{border-color:rgba(255,200,0,.4);}
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:11px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.form-group{margin-bottom:12px;}
+.form-label{font-size:11px;color:var(--muted2);margin-bottom:5px;display:block;}
+.form-input{width:100%;padding:10px 13px;background:var(--bg3);border:1px solid var(--b2);border-radius:9px;color:var(--text);font-size:13px;transition:border-color .2s;}
+.form-input:focus{border-color:var(--accent);}
+.form-input::placeholder{color:var(--muted);}
+.pw-bar{height:3px;border-radius:99px;margin-top:5px;transition:all .3s;background:var(--border);}
+.auth-footer{font-size:11px;color:var(--muted);text-align:center;margin-top:14px;}
+.auth-footer a{color:var(--accent);cursor:pointer;}
+.auth-terms{font-size:10px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.6;}
+
+/* ════ DASHBOARD ════ */
+.dash-welcome{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;}
+.dash-date{font-size:11px;color:var(--muted2);margin-top:3px;font-family:'DM Mono',monospace;}
+.dash-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px;}
+.etf-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);}
+.etf-row:last-child{border-bottom:none;}
+.etf-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.etf-info{flex:1;}
+.etf-n{font-size:13px;font-weight:600;color:var(--white);}
+.etf-d{font-size:10px;color:var(--muted);}
+.etf-ret{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;}
+.etf-ret.up{color:var(--green);}.etf-ret.dn{color:var(--red);}
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.qa{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;}
+.qa:hover{border-color:var(--b2);transform:translateY(-2px);}
+.qa-icon{font-size:22px;margin-bottom:8px;}
+.qa-label{font-size:12px;font-weight:600;color:var(--white);}
+.qa-sub{font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* ════ SENTIMENT PAGE ════ */
+.sent-hero{background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;}
+.sent-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sh-score{font-family:'Syne',sans-serif;font-size:56px;font-weight:800;line-height:1;letter-spacing:-3px;}
+.sh-gauge{height:7px;background:var(--bg3);border-radius:99px;margin:12px 0;}
+.sh-gauge-fill{height:100%;border-radius:99px;transition:width 1s ease;}
+.sh-breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.shb{background:var(--bg3);border-radius:9px;padding:11px;text-align:center;}
+.shb-val{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;line-height:1;}
+.shb-lbl{font-size:9px;color:var(--muted);margin-top:3px;}
+.sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
+.sig-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden;}
+.sig-bar{position:absolute;left:0;top:0;bottom:0;width:3px;}
+.sig-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:7px;}
+.sig-val{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;letter-spacing:-1px;margin-bottom:4px;}
+.sig-desc{font-size:11px;color:var(--muted2);line-height:1.5;}
+.ai-card{background:var(--bg2);border:1px solid var(--b2);border-radius:14px;padding:18px;margin-bottom:16px;}
+.ai-card-hdr{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+.ai-card-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--a2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.ai-card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--white);}
+.ai-card-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ai-card-body{font-size:13px;color:var(--muted2);line-height:1.75;}
+.bull-bear{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px;}
+.bb{border-radius:9px;padding:11px;}
+.bb-bull{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);}
+.bb-bear{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);}
+.bb-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:1.5px;margin-bottom:5px;}
+.bb-text{font-size:11px;color:var(--muted2);line-height:1.6;}
+.news-item{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:9px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.news-item:hover{border-color:var(--b2);}
+.news-item.expanded{border-color:var(--b3);}
+.ni-bar{position:absolute;left:0;top:0;bottom:0;width:3px;}
+.ni-top{display:flex;gap:10px;}
+.ni-score{width:40px;height:40px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.ni-sn{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;line-height:1;}
+.ni-sl{font-size:8px;margin-top:1px;font-family:'DM Mono',monospace;}
+.ni-headline{font-size:13px;color:var(--white);line-height:1.5;margin-bottom:5px;font-weight:500;}
+.ni-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.ni-src{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ni-time{font-size:10px;color:var(--muted);}
+.ni-theme{font-size:10px;color:var(--muted2);background:var(--bg3);padding:1px 6px;border-radius:99px;}
+.ni-sent{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:auto;}
+.ni-detail{margin-top:11px;padding-top:11px;border-top:1px solid var(--border);display:none;}
+.ni-detail.open{display:block;}
+.ni-summary{font-size:12px;color:var(--muted2);line-height:1.7;margin-bottom:9px;}
+.ni-impacts{background:var(--bg3);border-radius:8px;padding:9px 11px;}
+.ni-imp-title{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:5px;letter-spacing:1px;}
+.ni-imp-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:2px 0;}
+.ni-imp-stock{color:var(--muted2);}
+.ni-imp-dir{font-family:'DM Mono',monospace;font-weight:700;font-size:11px;}
+.theme-bar-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;}
+.theme-bar-row{display:flex;align-items:center;gap:11px;padding:7px 0;border-bottom:1px solid var(--border);}
+.theme-bar-row:last-child{border-bottom:none;}
+.tbr-name{font-size:12px;font-weight:600;color:var(--white);width:90px;}
+.tbr-bar{flex:1;height:5px;background:var(--bg3);border-radius:99px;}
+.tbr-fill{height:100%;border-radius:99px;transition:width .8s ease;}
+.tbr-score{font-family:'DM Mono',monospace;font-size:12px;width:30px;text-align:right;}
+.tbr-key{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* ════ BUILDER ════ */
+.bsteps{display:flex;align-items:center;margin-bottom:22px;}
+.bstep{display:flex;align-items:center;gap:7px;flex:1;}
+.bstep-n{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:11px;flex-shrink:0;transition:all .3s;}
+.bsn-done{background:#1e3a2f;color:var(--green);border:1px solid rgba(16,185,129,.3);}
+.bsn-cur{background:var(--accent);color:#04080f;box-shadow:0 0 14px rgba(14,165,233,.4);}
+.bsn-pend{background:var(--bg3);color:var(--muted);border:1px solid var(--border);}
+.bstep-txt{font-size:11px;color:var(--muted2);}
+.bstep-txt.cur{color:var(--white);font-weight:600;}
+.bstep-line{flex:1;height:1px;background:var(--border);margin:0 6px;max-width:32px;}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:16px;}
+.theme-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;text-align:center;}
+.theme-card:hover{border-color:var(--b2);}
+.theme-card.sel{border-color:var(--accent);background:rgba(14,165,233,.08);}
+.tc-emoji{font-size:26px;margin-bottom:8px;}
+.tc-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--white);margin-bottom:3px;}
+.tc-desc{font-size:10px;color:var(--muted2);}
+.sent-bridge{background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.2);border-radius:11px;padding:13px 15px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.sb-icon-wrap{width:36px;height:36px;background:rgba(14,165,233,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sb-info{flex:1;}
+.sb-title{font-size:13px;font-weight:600;color:var(--a2);}
+.sb-sub{font-size:11px;color:var(--muted2);margin-top:2px;}
+.nl-box{background:var(--bg3);border:1px solid var(--b2);border-radius:12px;padding:13px 15px;margin-bottom:11px;}
+.nl-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1.5px;margin-bottom:7px;}
+textarea.nl-inp{width:100%;background:transparent;border:none;color:var(--text);font-size:13px;line-height:1.65;resize:none;min-height:75px;}
+textarea.nl-inp::placeholder{color:var(--muted);}
+.ex-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.ex-chip{padding:5px 11px;border-radius:99px;font-size:11px;background:var(--bg3);color:var(--muted2);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.ex-chip:hover{border-color:var(--accent);color:var(--a2);}
+.parsed-box{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:11px;padding:13px;margin-bottom:14px;}
+.pb-hdr{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.pb-ok{color:var(--green);font-size:14px;}
+.pb-title{color:var(--green);font-weight:700;font-size:12px;}
+.pb-summary{font-size:12px;color:var(--muted2);margin-bottom:8px;line-height:1.5;}
+.pb-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.pb-tag{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);background:var(--bg3);border:1px solid var(--b2);padding:2px 8px;border-radius:6px;}
+.stock-table{width:100%;border-collapse:collapse;}
+.stock-table th{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);padding:7px 9px;text-align:left;border-bottom:1px solid var(--border);letter-spacing:1px;white-space:nowrap;}
+.stock-table td{padding:9px 9px;font-size:11px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.stock-table tr:hover td{background:rgba(14,165,233,.02);}
+.stock-table tr.sel-row td{background:rgba(14,165,233,.05);}
+.td-name{font-weight:700;color:var(--white);font-size:12px;}
+.td-ticker{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);}
+.td-num{font-family:'DM Mono',monospace;color:var(--muted2);}
+.td-good{color:var(--green)!important;}.td-bad{color:var(--red)!important;}
+.td-up{color:var(--green);font-weight:700;font-family:'DM Mono',monospace;}
+.td-dn{color:var(--red);font-weight:700;font-family:'DM Mono',monospace;}
+.esg-mini{height:3px;background:var(--bg3);border-radius:99px;margin-top:2px;width:48px;}
+.esg-mini-fill{height:100%;border-radius:99px;}
+.filter-bar{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:14px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;}
+.fb-group{}.fb-lbl{font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.fb-input{width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--text);font-size:11px;}
+.fb-select{width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--text);font-size:11px;}
+.port-result-hero{background:var(--bg2);border:1px solid var(--b2);border-radius:14px;padding:20px;margin-bottom:13px;position:relative;overflow:hidden;}
+.prh-before{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0ea5e9,#38bdf8,#10b981);}
+.prh-name{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--white);letter-spacing:-.5px;margin-bottom:3px;}
+.prh-strategy{font-size:12px;color:var(--muted2);margin-bottom:14px;}
+.prh-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.prh-m{background:var(--bg3);border-radius:8px;padding:10px;text-align:center;}
+.prh-mv{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;}
+.prh-ml{font-size:9px;color:var(--muted);margin-top:3px;}
+.holding-list{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:12px;}
+.h-item{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);}
+.h-item:last-child{border-bottom:none;}
+.h-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.h-name{font-size:12px;font-weight:600;color:var(--white);width:110px;}
+.h-reason{font-size:11px;color:var(--muted);flex:1;line-height:1.4;}
+.h-pct{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;min-width:32px;text-align:right;}
+.rebal-box{background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.13);border-radius:12px;padding:15px;margin-bottom:12px;}
+.rb-title{font-size:12px;font-weight:700;color:var(--a2);margin-bottom:9px;}
+.rb-item{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--muted2);padding:6px 0;border-bottom:1px solid rgba(14,165,233,.07);}
+.rb-item:last-child{border-bottom:none;}
+.rb-dot{color:var(--accent);font-size:8px;margin-top:3px;flex-shrink:0;}
+.action-row{display:flex;gap:9px;margin-top:16px;}
+.btn-back{padding:10px 18px;background:var(--bg3);color:var(--muted2);border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-back:hover{color:var(--text);}
+.btn-next{flex:1;padding:11px;background:linear-gradient(135deg,var(--accent),var(--a2));color:#04080f;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+.btn-next:hover{opacity:.9;}
+.btn-next:disabled{background:var(--bg3);color:var(--muted);cursor:not-allowed;}
+.save-bar{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:13px 15px;margin-top:11px;display:flex;align-items:center;gap:9px;}
+.sb-go{margin-left:auto;padding:7px 14px;background:var(--green);color:#04080f;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;}
+
+/* ════ PORTFOLIO PAGE ════ */
+.port-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:11px;cursor:pointer;transition:all .2s;}
+.port-card:hover{border-color:var(--b2);}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px;}
+.pc-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--white);}
+.pc-meta{font-size:10px;color:var(--muted);margin-top:2px;}
+.pc-ret{font-family:'DM Mono',monospace;font-size:17px;font-weight:700;}
+.pc-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+
+/* ════ SCREENING PAGE ════ */
+.screen-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px;}
+.screen-table-wrap{overflow-x:auto;}
+
+/* ════ NEWS PAGE ════ */
+.news-filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.nf{padding:5px 13px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted2);transition:all .2s;}
+.nf.active{background:rgba(14,165,233,.1);border-color:var(--accent);color:var(--a2);}
+
+/* ════ SETTINGS ════ */
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.sr-lbl{font-size:13px;color:var(--text);}
+.sr-desc{font-size:10px;color:var(--muted);margin-top:2px;}
+.toggle{width:38px;height:20px;border-radius:99px;background:var(--bg3);border:1px solid var(--b2);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--accent);border-color:var(--accent);}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--white);top:2px;left:2px;transition:transform .2s;}
+.toggle.on::after{transform:translateX(18px);}
+.plan-tag{font-size:10px;font-family:'DM Mono',monospace;padding:2px 9px;border-radius:99px;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2);color:var(--a2);}
+.connected-tag{font-size:10px;padding:2px 9px;border-radius:99px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--green);}
+
+/* ════ RESPONSIVE ════ */
+@media(max-width:1100px){.hero-visual{display:none;}.features-grid{grid-template-columns:1fr;}.feat-card.wide{grid-column:1;flex-direction:column;}.stats-inner{grid-template-columns:1fr 1fr;}.pricing-grid{grid-template-columns:1fr;}.metric-grid{grid-template-columns:1fr 1fr;}.dash-grid{grid-template-columns:1fr;}.sig-grid{grid-template-columns:1fr 1fr;}.theme-grid{grid-template-columns:1fr 1fr;}.prh-metrics{grid-template-columns:1fr 1fr;}.filter-bar{grid-template-columns:1fr 1fr;}.footer-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){.sidebar{display:none;}.nav-links{display:none;}.metric-grid{grid-template-columns:1fr 1fr;}.quick-actions{grid-template-columns:1fr 1fr;}.bull-bear{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║           NAV                 ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<nav class="nav" id="mainNav">
+  <div class="nav-logo" onclick="route('landing')">
+    <div class="nav-logo-icon">G</div>
+    <span class="nav-logo-text">GENPORT</span>
+  </div>
+  <ul class="nav-links" id="navLinks">
+    <li class="nav-link" onclick="scrollTo2('how')">서비스 소개</li>
+    <li class="nav-link" onclick="scrollTo2('features')">주요 기능</li>
+    <li class="nav-link" onclick="scrollTo2('pricing')">요금제</li>
+  </ul>
+  <div class="nav-sep"></div>
+  <div class="nav-right" id="navRight">
+    <button class="btn-outline-sm" onclick="openAuth('login')">로그인</button>
+    <button class="btn-cta" onclick="openAuth('signup')">무료 시작</button>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker" id="tickerBar"><div class="ticker-inner" id="tickerInner"></div></div>
+
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║        LANDING PAGE           ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<div class="page active" id="page-landing">
+  <section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="hero-badge">AI-POWERED ETF BUILDER · BETA</div>
+      <h1>당신만의 ETF를<br><em>AI가 설계합니다</em></h1>
+      <p class="hero-sub">관심 분야의 최신 뉴스를 AI가 분석하고,<br>자연어 한 문장으로 나만의 맞춤형 포트폴리오를 생성하세요.<br>자동 리밸런싱까지 — 투자의 새로운 기준.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="openAuth('signup')">🚀 무료로 시작하기</button>
+        <button class="btn-ghost" onclick="scrollTo2('how')" style="padding:11px 22px;">서비스 둘러보기 →</button>
+      </div>
+      <div class="hero-stats">
+        <div><div class="hs-num">18<span>K+</span></div><div class="hs-lbl">글로벌 커버리지 종목</div></div>
+        <div><div class="hs-num">0.3<span>%</span></div><div class="hs-lbl">연간 운용보수 최저</div></div>
+        <div><div class="hs-num">2.4<span>B</span></div><div class="hs-lbl">분석 데이터 포인트</div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="float-c fc1"><div class="fc-l">SENTIMENT</div><div class="fc-v">AI/테크 74</div><div class="fc-s">▲ 긍정적</div></div>
+      <div class="preview-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">
+          <div><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);">My Custom ETF #1</div><div style="font-size:9px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">ESG·테크·저변동</div></div>
+          <div style="font-size:8px;font-family:'DM Mono',monospace;color:var(--green);background:rgba(16,185,129,.12);padding:2px 7px;border-radius:99px;border:1px solid rgba(16,185,129,.2);">LIVE</div>
+        </div>
+        <div class="pc-metrics"><div class="pc-m"><div class="pc-mv">+12.4%</div><div class="pc-ml">연수익률</div></div><div class="pc-m"><div class="pc-mv">1.42</div><div class="pc-ml">샤프비율</div></div><div class="pc-m"><div class="pc-mv">14.2%</div><div class="pc-ml">변동성</div></div></div>
+        <div class="pc-bar"><span class="pc-bn">NVIDIA</span><div class="pc-bt"><div class="pc-bf" style="width:30%;background:#0ea5e9;"></div></div><span class="pc-bp">30%</span></div>
+        <div class="pc-bar"><span class="pc-bn">Microsoft</span><div class="pc-bt"><div class="pc-bf" style="width:25%;background:#38bdf8;"></div></div><span class="pc-bp">25%</span></div>
+        <div class="pc-bar"><span class="pc-bn">삼성전자</span><div class="pc-bt"><div class="pc-bf" style="width:20%;background:#10b981;"></div></div><span class="pc-bp">20%</span></div>
+        <div class="pc-bar"><span class="pc-bn">Eli Lilly</span><div class="pc-bt"><div class="pc-bf" style="width:15%;background:#f59e0b;"></div></div><span class="pc-bp">15%</span></div>
+        <div class="pc-bar"><span class="pc-bn">FSLR</span><div class="pc-bt"><div class="pc-bf" style="width:10%;background:#a78bfa;"></div></div><span class="pc-bp">10%</span></div>
+      </div>
+      <div class="float-c fc2"><div class="fc-l">AUTO REBALANCING</div><div class="fc-v">오늘 실행</div><div class="fc-s">✓ 최적화 완료</div></div>
+    </div>
+  </section>
+  <section class="landing-sec dark" id="how">
+    <div style="max-width:1080px;margin:0 auto;">
+      <div style="text-align:center;max-width:560px;margin:0 auto 0;">
+        <div class="sec-label">HOW IT WORKS</div>
+        <h2 class="sec-title" style="font-size:clamp(22px,3vw,36px);">4단계로 완성되는 나만의 ETF</h2>
+      </div>
+      <div class="steps-grid">
+        <div class="step-box"><div class="step-circle">01</div><div class="step-t">테마 탐색</div><div class="step-d">관심 분야 선택 → AI가 실시간 뉴스와 Sentiment를 즉시 분석합니다.</div></div>
+        <div class="step-box hl"><div class="step-circle">02</div><div class="step-t">시장 분석</div><div class="step-d">AI 감정 분석, ESG 점수, 재무 지표를 다차원으로 비교합니다.</div></div>
+        <div class="step-box"><div class="step-circle">03</div><div class="step-t">조건 설정</div><div class="step-d">자연어로 조건을 말하면 AI가 자동 파싱해 포트폴리오 기준을 설정합니다.</div></div>
+        <div class="step-box"><div class="step-circle">04</div><div class="step-t">ETF 생성</div><div class="step-d">최적화된 포트폴리오 생성 후 자동 리밸런싱으로 지속 관리합니다.</div></div>
+      </div>
+    </div>
+  </section>
+  <section class="landing-sec" id="features" style="max-width:1080px;margin:0 auto;padding:80px 5%;">
+    <div class="sec-label">KEY FEATURES</div>
+    <h2 class="sec-title" style="font-size:clamp(22px,3vw,36px);">기존 로보어드바이저와<br>다른 이유</h2>
+    <div class="features-grid">
+      <div class="feat-card wide"><div class="feat-icon">🧠</div><div><div class="feat-t">자연어 기반 포트폴리오 설계</div><div class="feat-d">"PER 30 이하, ESG 높고, 여성 임원 30% 이상인 기업만 골라줘" — 말하듯이 투자 전략을 설계할 수 있습니다. 기존처럼 드롭다운을 하나씩 조작할 필요가 없습니다.</div></div></div>
+      <div class="feat-card"><div class="feat-icon">📰</div><div class="feat-t">AI 뉴스 Sentiment 분석</div><div class="feat-d">투자 전에 시장 심리를 수치로 파악하세요. Bull Case / Bear Case까지 AI가 분석합니다.</div></div>
+      <div class="feat-card"><div class="feat-icon">🔄</div><div class="feat-t">스마트 자동 리밸런싱</div><div class="feat-d">시간·비중이탈·이벤트 기반 3중 리밸런싱으로 포트폴리오를 항상 최적 상태로.</div></div>
+      <div class="feat-card"><div class="feat-icon">🌍</div><div class="feat-t">글로벌 멀티 마켓</div><div class="feat-d">한국·미국·유럽·아시아 18,000개 이상 종목을 한 플랫폼에서 분석하세요.</div></div>
+      <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-t">다차원 종목 스크리닝</div><div class="feat-d">PER, ESG, 부채비율, 여성임원 비율 등 비재무 지표까지 통합 분석합니다.</div></div>
+    </div>
+  </section>
+  <div class="stats-band">
+    <div class="stats-inner">
+      <div class="si"><div class="si-val">18<span>K+</span></div><div class="si-lbl">커버리지 종목</div></div>
+      <div class="si"><div class="si-val">0.3<span>%</span></div><div class="si-lbl">최저 운용보수</div></div>
+      <div class="si"><div class="si-val">2.4<span>B</span></div><div class="si-lbl">데이터 포인트</div></div>
+      <div class="si"><div class="si-val">12<span>+</span></div><div class="si-lbl">연결 시장</div></div>
+    </div>
+  </div>
+  <section class="landing-sec dark" id="pricing" style="padding:80px 5%;">
+    <div style="max-width:860px;">
+      <div class="sec-label">PRICING</div>
+      <h2 class="sec-title" style="font-size:clamp(22px,3vw,36px);">합리적인 요금제</h2>
+      <div class="pricing-grid">
+        <div class="p-card"><div class="p-plan">FREE</div><div class="p-price">₩0<span>/월</span></div><div class="p-desc">기본 기능으로 경험해보세요</div><ul class="p-feats"><li>ETF 포트폴리오 1개</li><li>기본 뉴스 피드</li><li>10개 종목 스크리닝</li><li>월 1회 수동 리밸런싱</li></ul><button class="btn-plan btn-pl-ol" onclick="openAuth('signup')">무료로 시작</button></div>
+        <div class="p-card feat"><div class="p-badge">가장 인기</div><div class="p-plan">PRO</div><div class="p-price">₩29,000<span>/월</span></div><div class="p-desc">개인 투자자를 위한 완전한 기능</div><ul class="p-feats"><li>ETF 포트폴리오 10개</li><li>실시간 AI 뉴스 + Sentiment</li><li>18,000+ 종목 스크리닝</li><li>자동 리밸런싱 (이벤트 기반)</li><li>샤프비율 최적화 엔진</li><li>운용보수 연 0.3%</li></ul><button class="btn-plan btn-pl-fl" onclick="openAuth('signup')">PRO 시작하기</button></div>
+        <div class="p-card"><div class="p-plan">ENTERPRISE</div><div class="p-price">별도<span> 문의</span></div><div class="p-desc">증권사·자산운용사 B2B API</div><ul class="p-feats"><li>무제한 포트폴리오</li><li>API 전체 기능</li><li>화이트라벨 지원</li><li>전담 매니저</li><li>SLA 99.9%</li></ul><button class="btn-plan btn-pl-ol">문의하기</button></div>
+      </div>
+    </div>
+  </section>
+  <section class="landing-sec" style="text-align:center;background:var(--bg2);border-top:1px solid var(--border);padding:80px 5%;">
+    <div style="max-width:560px;margin:0 auto;position:relative;">
+      <div style="position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,233,.08),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;"></div>
+      <div class="sec-label" style="text-align:center;">GET STARTED</div>
+      <h2 class="sec-title" style="font-size:clamp(22px,3.5vw,40px);text-align:center;">지금 나만의 ETF를<br>만들어보세요</h2>
+      <p style="font-size:14px;color:var(--muted2);margin-bottom:28px;">베타 가입자에게 PRO 플랜 3개월 무료 제공</p>
+      <div style="display:flex;gap:9px;max-width:400px;margin:0 auto;">
+        <input type="email" style="flex:1;padding:12px 16px;background:var(--bg3);border:1px solid var(--b2);border-radius:10px;color:var(--text);font-size:13px;" placeholder="이메일 주소">
+        <button class="btn-primary" onclick="openAuth('signup')" style="white-space:nowrap;">시작하기 →</button>
+      </div>
+      <p style="font-size:10px;color:var(--muted);margin-top:10px;">신용카드 불필요 · 언제든 취소 가능</p>
+    </div>
+  </section>
+  <footer>
+    <div class="footer-grid">
+      <div><div class="f-brand-n"><div style="width:24px;height:24px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:11px;color:#04080f;">G</div>GENPORT</div><p class="f-brand-d">AI 기반 개인 맞춤형 ETF 자동 생성 플랫폼.</p></div>
+      <div><div class="f-col-t">서비스</div><ul class="f-links"><li>ETF 빌더</li><li>종목 스크리닝</li><li>뉴스 분석</li><li>자동 리밸런싱</li></ul></div>
+      <div><div class="f-col-t">회사</div><ul class="f-links"><li>회사 소개</li><li>팀 소개</li><li>채용</li><li>블로그</li></ul></div>
+      <div><div class="f-col-t">고객지원</div><ul class="f-links"><li>자주 묻는 질문</li><li>API 문서</li><li>문의하기</li><li>투자 유의사항</li></ul></div>
+    </div>
+    <div class="f-bottom"><span>© 2025 GENPORT Inc. All rights reserved.</span><div style="display:flex;gap:14px;"><span style="cursor:pointer;">개인정보처리방침</span><span style="cursor:pointer;">이용약관</span><span style="cursor:pointer;">투자위험고지</span></div></div>
+  </footer>
+</div>
+
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║           APP                 ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<div class="page" id="page-app">
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-sec">
+        <div class="sb-lbl">MAIN</div>
+        <div class="sb-item active" onclick="showView('dashboard')"><span class="sb-icon">📊</span>대시보드</div>
+        <div class="sb-item" onclick="showView('sentiment')"><span class="sb-icon">🧠</span>Sentiment 분석<span class="sb-new">AI</span></div>
+        <div class="sb-item" onclick="showView('builder')"><span class="sb-icon">✨</span>ETF 빌더<span class="sb-badge">NEW</span></div>
+        <div class="sb-item" onclick="showView('portfolio')"><span class="sb-icon">💼</span>내 포트폴리오</div>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-lbl">RESEARCH</div>
+        <div class="sb-item" onclick="showView('news')"><span class="sb-icon">📰</span>뉴스 피드</div>
+        <div class="sb-item" onclick="showView('screening')"><span class="sb-icon">🔍</span>종목 스크리닝</div>
+      </div>
+      <div class="sb-sec sb-push">
+        <div class="sb-lbl">ACCOUNT</div>
+        <div class="sb-item" onclick="showView('settings')"><span class="sb-icon">⚙️</span>설정</div>
+        <div class="sb-item" onclick="doLogout()"><span class="sb-icon">↩</span>로그아웃</div>
+        <div class="sb-user" id="sbUser"></div>
+      </div>
+    </aside>
+    <!-- VIEWS -->
+    <div class="main-content" id="mainContent">
+      <div class="view active" id="view-dashboard"></div>
+      <div class="view" id="view-sentiment"></div>
+      <div class="view" id="view-builder"></div>
+      <div class="view" id="view-portfolio"></div>
+      <div class="view" id="view-news"></div>
+      <div class="view" id="view-screening"></div>
+      <div class="view" id="view-settings"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════╗ -->
+<!-- ║         AUTH MODAL            ║ -->
+<!-- ╚═══════════════════════════════╝ -->
+<div class="modal-bg" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
+      <div style="width:22px;height:22px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:11px;color:#04080f;">G</div>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--white);">GENPORT</span>
+    </div>
+    <div class="modal-tabs"><button class="modal-tab active" id="tabSU" onclick="switchAuthTab('signup')">회원가입</button><button class="modal-tab" id="tabLI" onclick="switchAuthTab('login')">로그인</button></div>
+    <div id="authSignup">
+      <div class="modal-title">시작하세요</div>
+      <div class="modal-sub">소셜 계정으로 3초만에 가입</div>
+      <button class="social-btn google" onclick="doSocial('Google')"><svg width="17" height="17" viewBox="0 0 18 18"><path fill="#EA4335" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#4285F4" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#34A853" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>Google로 시작하기</button>
+      <button class="social-btn kakao" onclick="doSocial('Kakao')">💬 카카오로 시작하기</button>
+      <div class="divider">또는 이메일로 가입</div>
+      <div class="form-group"><label class="form-label">이름</label><input type="text" class="form-input" id="suName" placeholder="홍길동"></div>
+      <div class="form-group"><label class="form-label">이메일</label><input type="email" class="form-input" id="suEmail" placeholder="your@email.com"></div>
+      <div class="form-group"><label class="form-label">비밀번호</label><input type="password" class="form-input" id="suPw" placeholder="8자 이상" oninput="pwStrength(this.value)"><div class="pw-bar" id="pwBar"></div></div>
+      <button class="btn-primary" style="width:100%;justify-content:center;" onclick="doEmailSignup()">이메일로 가입하기 →</button>
+      <div class="auth-terms">가입하면 <a>이용약관</a> 및 <a>개인정보처리방침</a>에 동의합니다.</div>
+    </div>
+    <div id="authLogin" style="display:none;">
+      <div class="modal-title">다시 오셨군요</div>
+      <div class="modal-sub">계정에 로그인하세요</div>
+      <button class="social-btn google" onclick="doSocial('Google')"><svg width="17" height="17" viewBox="0 0 18 18"><path fill="#EA4335" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#4285F4" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#34A853" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>Google로 로그인</button>
+      <button class="social-btn kakao" onclick="doSocial('Kakao')">💬 카카오로 로그인</button>
+      <div class="divider">또는 이메일로 로그인</div>
+      <div class="form-group"><label class="form-label">이메일</label><input type="email" class="form-input" id="liEmail" placeholder="your@email.com"></div>
+      <div class="form-group"><label class="form-label">비밀번호</label><input type="password" class="form-input" id="liPw" placeholder="비밀번호"><div style="font-size:10px;margin-top:4px;"><a style="color:var(--accent);cursor:pointer;">비밀번호를 잊으셨나요?</a></div></div>
+      <button class="btn-primary" style="width:100%;justify-content:center;" onclick="doEmailLogin()">로그인 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!--                  SCRIPT                      -->
+<!-- ════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════
+// ⚙️ API 설정 (Vercel Functions 사용 — 키가 서버에 숨겨짐)
+// ══════════════════════════
+function claudeAPI(body) {
+  return fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+})();
+
+function buildTicker(){
+  const el=document.getElementById('tickerInner');
+  let h='';
+  for(let i=0;i<2;i++) TICKERS.forEach(t=>{h+=`<div class="ti"><span class="t-n">${t.n}</span><span class="t-v">${t.v}</span><span class="${t.u?'t-u':'t-d'}">${t.c}</span></div>`;});
+  el.innerHTML=h;
+}
+
+// ══════════════════════════
+// ROUTING
+// ══════════════════════════
+function route(pg){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  window.scrollTo(0,0);
+}
+function scrollTo2(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'});}
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>{v.classList.remove('active');});
+  const el=document.getElementById('view-'+id);
+  el.classList.add('active');
+  el.classList.add('fade-in');
+  currentView=id;
+  // Update sidebar
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  const map={dashboard:0,sentiment:1,builder:2,portfolio:3,news:4,screening:5,settings:6};
+  const items=document.querySelectorAll('.sb-item');
+  if(items[map[id]])items[map[id]].classList.add('active');
+  // Update nav links
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  // Render view content
+  const renders={dashboard:renderDashboard,sentiment:renderSentimentPage,builder:renderBuilderPage,portfolio:renderPortfolioPage,news:renderNewsPage,screening:renderScreeningPage,settings:renderSettingsPage};
+  if(renders[id])renders[id]();
+}
+
+// ══════════════════════════
+// AUTH
+// ══════════════════════════
+function openAuth(tab='signup'){switchAuthTab(tab);document.getElementById('authModal').classList.add('open');}
+function closeAuth(){document.getElementById('authModal').classList.remove('open');}
+function switchAuthTab(t){
+  document.getElementById('authSignup').style.display=t==='signup'?'block':'none';
+  document.getElementById('authLogin').style.display=t==='login'?'block':'none';
+  document.getElementById('tabSU').className='modal-tab'+(t==='signup'?' active':'');
+  document.getElementById('tabLI').className='modal-tab'+(t==='login'?' active':'');
+}
+function pwStrength(pw){
+  let s=0;if(pw.length>=8)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;
+  const colors=['var(--border)','var(--red)','var(--gold)','var(--accent)','var(--green)'];
+  const w=['0%','25%','50%','75%','100%'];
+  const bar=document.getElementById('pwBar');
+  if(bar){bar.style.width=w[s];bar.style.background=colors[s];}
+}
+function doSocial(provider){
+  user={name:provider+'사용자',email:provider.toLowerCase()+'@genport.ai',plan:'FREE',provider,avatar:provider[0],joined:new Date().toLocaleDateString('ko-KR')};
+  finishAuth();
+}
+function doEmailSignup(){
+  const n=document.getElementById('suName').value||'사용자';
+  const e=document.getElementById('suEmail').value||'user@genport.ai';
+  user={name:n,email:e,plan:'FREE',provider:'email',avatar:n[0].toUpperCase(),joined:new Date().toLocaleDateString('ko-KR')};
+  finishAuth();
+}
+function doEmailLogin(){
+  const e=document.getElementById('liEmail').value||'user@genport.ai';
+  user={name:e.split('@')[0],email:e,plan:'FREE',provider:'email',avatar:e[0].toUpperCase(),joined:new Date().toLocaleDateString('ko-KR')};
+  finishAuth();
+}
+function finishAuth(){
+  localStorage.setItem('gp_user',JSON.stringify(user));
+  closeAuth();
+  afterLogin();
+}
+function afterLogin(){
+  // Nav
+  document.getElementById('navRight').innerHTML=`<div class="nav-user" onclick="showView('settings')"><div class="nav-avatar">${user.avatar}</div><span class="nav-username">${user.name}</span></div>`;
+  document.getElementById('navLinks').innerHTML=`<li class="nav-link" onclick="showView('dashboard')">대시보드</li><li class="nav-link" onclick="showView('sentiment')">Sentiment</li><li class="nav-link" onclick="showView('builder')">ETF 빌더</li>`;
+  // Sidebar user card
+  document.getElementById('sbUser').innerHTML=`<div class="sb-user-av">${user.avatar}</div><div class="sb-user-name">${user.name}</div><div class="sb-user-plan">${user.plan} 플랜</div>`;
+  route('app');
+  renderDashboard();
+  showView('dashboard');
+}
+function doLogout(){
+  localStorage.removeItem('gp_user');user=null;
+  document.getElementById('navRight').innerHTML=`<button class="btn-outline-sm" onclick="openAuth('login')">로그인</button><button class="btn-cta" onclick="openAuth('signup')">무료 시작</button>`;
+  document.getElementById('navLinks').innerHTML=`<li class="nav-link" onclick="scrollTo2('how')">서비스 소개</li><li class="nav-link" onclick="scrollTo2('features')">주요 기능</li><li class="nav-link" onclick="scrollTo2('pricing')">요금제</li>`;
+  route('landing');
+}
+
+// ══════════════════════════
+// DASHBOARD
+// ══════════════════════════
+function renderDashboard(){
+  const now=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  const totalRet=portfolios.length?((portfolios.reduce((a,p)=>a+(parseFloat(p.metrics?.expectedReturn)||0),0)/portfolios.length).toFixed(1)+'%'):'+0%';
+  const el=document.getElementById('view-dashboard');
+  el.innerHTML=`
+  <div style="margin-bottom:20px;"><div class="dash-welcome">안녕하세요, ${user?.name||'투자자'}님 👋</div><div class="dash-date">${now}</div></div>
+  <div class="metric-grid">
+    <div class="mc"><div class="mc-lbl">총 자산</div><div class="mc-val">₩${portfolios.length?'12,482,000':'0'}</div><div class="mc-sub">${portfolios.length?'전일 대비 +₩148,000':'포트폴리오를 생성하세요'}</div></div>
+    <div class="mc"><div class="mc-lbl">활성 ETF</div><div class="mc-val">${portfolios.length}개</div><div class="mc-sub">${portfolios.length?'자동 관리 중':'ETF 빌더로 생성'}</div></div>
+    <div class="mc"><div class="mc-lbl">평균 수익률</div><div class="mc-val ${portfolios.length?'up':''}">${portfolios.length?totalRet:'-'}</div><div class="mc-sub">AI 최적화 기반</div></div>
+    <div class="mc"><div class="mc-lbl">Sentiment</div><div class="mc-val" style="color:var(--gold);">${sentimentHistory.length?sentimentHistory[0].score:'—'}</div><div class="mc-sub">${sentimentHistory.length?sentimentHistory[0].query:'분석 기록 없음'}</div></div>
+  </div>
+  <div style="margin-bottom:14px;">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);margin-bottom:10px;">빠른 실행</div>
+    <div class="quick-actions">
+      <div class="qa" onclick="showView('sentiment')"><div class="qa-icon">🧠</div><div class="qa-label">Sentiment 분석</div><div class="qa-sub">AI 시장 심리</div></div>
+      <div class="qa" onclick="showView('builder')"><div class="qa-icon">✨</div><div class="qa-label">ETF 빌더</div><div class="qa-sub">포트폴리오 생성</div></div>
+      <div class="qa" onclick="showView('screening')"><div class="qa-icon">🔍</div><div class="qa-label">종목 스크리닝</div><div class="qa-sub">조건별 필터링</div></div>
+      <div class="qa" onclick="showView('news')"><div class="qa-icon">📰</div><div class="qa-label">뉴스 피드</div><div class="qa-sub">최신 시장 뉴스</div></div>
+    </div>
+  </div>
+  <div class="dash-grid">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">내 포트폴리오</div><button class="btn-primary" onclick="showView('builder')" style="font-size:11px;padding:7px 14px;">+ 새 ETF</button></div>
+      ${portfolios.length===0?`<div style="text-align:center;padding:32px;color:var(--muted);"><div style="font-size:28px;margin-bottom:10px;">📂</div><div style="font-size:13px;">아직 포트폴리오가 없습니다</div><button class="btn-primary" onclick="showView('builder')" style="margin-top:14px;font-size:12px;padding:9px 18px;">ETF 빌더 시작하기 →</button></div>`
+      :portfolios.map((p,i)=>`<div class="etf-row"><div class="etf-dot" style="background:${COLORS[i%COLORS.length]};"></div><div class="etf-info"><div class="etf-n">${p.etfName||'My ETF'}</div><div class="etf-d">${p._themes||''} · ${p.holdings?.length||0}개 종목</div></div><div class="etf-ret up">${p.metrics?.expectedReturn||'-'}</div></div>`).join('')}
+    </div>
+    <div class="panel">
+      <div class="panel-title" style="margin-bottom:12px;">알림 & 현황</div>
+      ${portfolios.length?`<div class="alert al-success">✓ 자동 리밸런싱 스케줄 활성화</div>`:''}
+      ${sentimentHistory.length?`<div class="alert al-info">📊 최근 분석: ${sentimentHistory[0].query} (${sentimentHistory[0].score}점)</div>`:'<div class="alert al-info">🧠 Sentiment 분석을 시작해보세요</div>'}
+      <div class="alert al-warn">⚠ <span class="api-stub">API STUB</span> 실시간 데이터는 API 연동 후 활성화</div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--muted2);margin-bottom:8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;">구현 현황</div>
+        ${[['AI Sentiment 분석','실제 작동','ok'],['자연어 파싱','실제 작동','ok'],['포트폴리오 생성','AI 생성','ok'],['실시간 주가','API 연동 필요','warn'],['자동 리밸런싱','백엔드 필요','warn'],['실거래 연동','라이선스 필요','err']].map(([k,v,c])=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted2);">${k}</span><span style="color:${c==='ok'?'var(--green)':c==='warn'?'var(--gold)':'var(--red)'};font-family:'DM Mono',monospace;font-size:10px;">${v}</span></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════
+// SENTIMENT PAGE (실제 AI 작동)
+// ══════════════════════════
+function renderSentimentPage(){
+  const el=document.getElementById('view-sentiment');
+  el.innerHTML=`
+  <div style="margin-bottom:20px;">
+    <div class="sec-label">AI SENTIMENT ENGINE</div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;">시장 심리 분석</div>
+    <div style="font-size:12px;color:var(--muted2);margin-top:4px;">투자 테마나 종목을 입력하면 AI가 실시간으로 뉴스를 생성하고 Sentiment를 분석합니다.</div>
+  </div>
+  <div style="display:flex;gap:9px;margin-bottom:12px;">
+    <input type="text" id="sentInput" style="flex:1;padding:12px 16px;background:var(--bg2);border:1.5px solid var(--b2);border-radius:11px;color:var(--text);font-size:14px;transition:border-color .2s;" placeholder="예: AI 반도체, 친환경 에너지, NVIDIA..." onkeydown="if(event.key==='Enter')runSentiment()" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--b2)'">
+    <button class="btn-primary" id="sentBtn" onclick="runSentiment()">🔍 분석</button>
+  </div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;">
+    ${['🤖 AI/반도체','🌿 친환경','💊 헬스케어','🔋 배터리/EV','🏦 핀테크','🛡️ 방산/우주'].map((t,i)=>{
+      const q=['AI 반도체 인공지능','친환경 재생에너지','바이오 제약 헬스케어','전기차 배터리','핀테크 금융','방산 우주항공'][i];
+      return `<button style="padding:5px 13px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:var(--bg2);color:var(--muted2);transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--a2)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--muted2)'" onclick="document.getElementById('sentInput').value='${q}';runSentiment()">${t}</button>`;
+    }).join('')}
+  </div>
+  <div id="sentResult">${sentimentState.result?buildSentimentHTML(sentimentState.result):`<div style="text-align:center;padding:64px 20px;color:var(--muted);"><div style="font-size:36px;margin-bottom:12px;">🧠</div><div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--muted2);margin-bottom:6px;">분석 대기 중</div><div style="font-size:12px;line-height:1.6;">위에서 투자 테마나 종목을 입력하고 분석 버튼을 클릭하세요</div></div>`}
+  </div>`;
+  if(sentimentState.query)document.getElementById('sentInput').value=sentimentState.query;
+}
+
+async function runSentiment(){
+  const q=document.getElementById('sentInput')?.value.trim();
+  if(!q)return;
+  sentimentState.query=q;
+  const btn=document.getElementById('sentBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 분석 중...';}
+
+  document.getElementById('sentResult').innerHTML=`<div class="loading-box"><div class="spinner"></div><div class="loading-title">AI가 "${q}" 분석 중...</div><div class="loading-sub">뉴스 생성 → Sentiment 계산 → 종목 영향도 분석</div><div class="prog-track"><div class="prog-fill"></div></div></div>`;
+  try{
+    const res=await claudeAPI({max_tokens:2500,messages:[{role:'user',content:buildSentimentPrompt(q)}]});
+    const data=await res.json();
+    const raw=data.content.find(c=>c.type==='text')?.text||'{}';
+    sentimentState.result=JSON.parse(raw.replace(/```json|```/g,'').trim());
+  }catch{sentimentState.result=buildSentFallback(q);}
+  sentimentHistory.unshift({query:q,score:sentimentState.result.overallScore,label:sentimentState.result.overallLabel,time:new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})});
+  if(sentimentHistory.length>10)sentimentHistory.pop();
+  document.getElementById('sentResult').innerHTML=buildSentimentHTML(sentimentState.result);
+  if(btn){btn.disabled=false;btn.textContent='🔍 분석';}
+  renderDashboard();
+}
+
+function buildSentimentPrompt(q){
+  return `당신은 금융 뉴스 분석 전문 AI입니다. "${q}"에 대한 심층 시장 Sentiment 분석을 수행하세요. 2025년 3월 기준.
+JSON만 출력, 다른 텍스트 없이:
+{"overallScore":0-100,"overallLabel":"매우긍정적|긍정적|중립적|부정적|매우부정적","momentum":"상승|하락|횡보","themeBreakdown":[{"name":"세부테마","score":0-100,"label":"긍정적|중립|부정적","keyDriver":"핵심요인한문장"}],"signals":{"shortTerm":{"score":0-100,"label":"string","desc":"단기전망한문장"},"midTerm":{"score":0-100,"label":"string","desc":"중기전망한문장"},"riskLevel":{"score":0-100,"label":"낮음|보통|높음","desc":"리스크요인한문장"}},"aiAnalysis":{"summary":"전체분석3-4문장(구체적수치포함)","bullCase":"강세시나리오2문장","bearCase":"약세시나리오2문장","keyWatchPoints":["포인트1","포인트2","포인트3"]},"news":[{"headline":"구체적헤드라인(한국어50자이내)","source":"Bloomberg|Reuters|한국경제|FT|WSJ|CNBC|연합뉴스|조선비즈","timeAgo":"30분전|1시간전|2시간전|3시간전|5시간전","sentiment":"긍정|부정|중립","score":0-100,"summary":"요약2문장","stockImpacts":[{"ticker":"코드","name":"종목명","impact":"긍정적|부정적|중립","reason":"이유한문장"}]}],"investmentImplication":"투자시사점3문장"}
+뉴스 최소 7개, 각각 구체적 수치 포함.`;
+}
+
+function buildSentFallback(q){
+  return {overallScore:65,overallLabel:'긍정적',momentum:'상승',themeBreakdown:[{name:q,score:65,label:'긍정적',keyDriver:'글로벌 투자 확대 모멘텀'}],signals:{shortTerm:{score:68,label:'긍정적',desc:'단기 기관 수요 유입 지속'},midTerm:{score:72,label:'긍정적',desc:'구조적 성장 트렌드 유효'},riskLevel:{score:38,label:'보통',desc:'금리 불확실성 상존'}},aiAnalysis:{summary:`${q} 관련 시장은 긍정적 흐름을 보이고 있습니다. 글로벌 투자자들의 관심 증가와 기업 실적 호조가 주가를 견인하고 있습니다. 다만 단기 과열 우려와 지정학적 리스크는 주의가 필요합니다.`,bullCase:'기술 혁신 가속화와 수요 증가로 실적이 예상을 상회할 가능성이 있습니다.',bearCase:'금리 인상과 경기 둔화로 밸류에이션 부담이 커질 수 있습니다.',keyWatchPoints:['주요 기업 실적 발표','금리 정책 변화','글로벌 수요 동향']},news:[{headline:`${q} 글로벌 투자 2025년 최고치 경신`,source:'Bloomberg',timeAgo:'2시간 전',sentiment:'긍정',score:82,summary:'기관 투자자 유입이 지속되며 시장이 활성화되고 있습니다.',stockImpacts:[]},{headline:`주요국 정부, ${q} 산업 지원 정책 강화`,source:'Reuters',timeAgo:'4시간 전',sentiment:'긍정',score:78,summary:'각국 정부의 정책 지원 강화로 시장 성장에 긍정적 영향이 예상됩니다.',stockImpacts:[]},{headline:`${q} 시장 경쟁 심화… 수익성 압박 우려`,source:'WSJ',timeAgo:'6시간 전',sentiment:'부정',score:35,summary:'경쟁 심화로 일부 기업들의 마진 압박이 우려됩니다.',stockImpacts:[]}],investmentImplication:'분산 투자와 ESG 우수 기업 중심 포트폴리오 구성이 적합합니다. 단기 변동성에 대비한 헤지 전략도 고려하세요.'};
+}
+
+function buildSentimentHTML(d){
+  const sc=d.overallScore;
+  const c=sc>=70?'var(--green)':sc>=45?'var(--gold)':'var(--red)';
+  const grad=sc>=70?'linear-gradient(90deg,#10b981,#34d399)':sc>=45?'linear-gradient(90deg,#f59e0b,#fcd34d)':'linear-gradient(90deg,#ef4444,#f87171)';
+  const posN=(d.news||[]).filter(n=>n.sentiment==='긍정').length;
+  const negN=(d.news||[]).filter(n=>n.sentiment==='부정').length;
+  const neuN=(d.news||[]).filter(n=>n.sentiment==='중립').length;
+  return `
+  <div class="sent-hero" style="--gradBefore:${grad}">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${grad};"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;margin-bottom:8px;">OVERALL SENTIMENT · ${new Date().toLocaleDateString('ko-KR')}</div>
+    <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:12px;">
+      <div class="sh-score" style="color:${c};">${sc}</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:${c};">${d.overallLabel}</div>
+        <div style="font-size:11px;color:var(--muted2);">"${sentimentState.query}"</div>
+        <div style="margin-top:5px;"><span style="font-size:10px;background:${c}22;border:1px solid ${c}44;color:${c};padding:2px 8px;border-radius:99px;font-family:'DM Mono',monospace;">${d.momentum||'—'}</span></div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <button onclick="showView('builder')" style="padding:8px 14px;background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.3);color:var(--a2);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">이 분석으로 ETF 생성 →</button>
+      </div>
+    </div>
+    <div class="sh-gauge"><div class="sh-gauge-fill" style="width:${sc}%;background:${c};"></div></div>
+    <div class="sh-breakdown">
+      <div class="shb"><div class="shb-val" style="color:var(--green);">${posN}</div><div class="shb-lbl">긍정 뉴스</div></div>
+      <div class="shb"><div class="shb-val" style="color:var(--muted2);">${neuN}</div><div class="shb-lbl">중립 뉴스</div></div>
+      <div class="shb"><div class="shb-val" style="color:var(--red);">${negN}</div><div class="shb-lbl">부정 뉴스</div></div>
+    </div>
+  </div>
+  <div class="sig-grid">
+    ${d.signals?[['단기 전망 (1-3M)',d.signals.shortTerm,'📈'],['중기 전망 (3-6M)',d.signals.midTerm,'📊'],['리스크 레벨',d.signals.riskLevel,'⚠️']].map(([t,s,i])=>{
+      if(!s)return'';
+      const sc2=s.score;const c2=t.includes('리스크')?(sc2<=33?'var(--green)':sc2<=66?'var(--gold)':'var(--red)'):(sc2>=70?'var(--green)':sc2>=45?'var(--gold)':'var(--red)');
+      return `<div class="sig-card"><div class="sig-bar" style="background:${c2};"></div><div class="sig-lbl">${t}</div><div class="sig-val" style="color:${c2};">${i} ${s.label||sc2}</div><div class="sig-desc">${s.desc||''}</div></div>`;
+    }).join(''):''}
+  </div>
+  ${d.aiAnalysis?`<div class="ai-card"><div class="ai-card-hdr"><div class="ai-card-icon">🧠</div><div><div class="ai-card-title">AI 심층 분석</div><div class="ai-card-sub">Claude Sonnet 기반</div></div></div><div class="ai-card-body">${d.aiAnalysis.summary}</div><div class="bull-bear"><div class="bb bb-bull"><div class="bb-lbl" style="color:var(--green);">BULL CASE</div><div class="bb-text">${d.aiAnalysis.bullCase||''}</div></div><div class="bb bb-bear"><div class="bb-lbl" style="color:var(--red);">BEAR CASE</div><div class="bb-text">${d.aiAnalysis.bearCase||''}</div></div></div>${d.aiAnalysis.keyWatchPoints?.length?`<div style="margin-top:11px;display:flex;gap:6px;flex-wrap:wrap;">${d.aiAnalysis.keyWatchPoints.map(p=>`<span style="font-size:10px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.18);color:var(--a2);padding:3px 9px;border-radius:99px;">👀 ${p}</span>`).join('')}</div>`:''}</div>`:'' }
+  ${d.themeBreakdown?.length?`<div class="theme-bar-wrap"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--white);margin-bottom:12px;">테마별 분석</div>${d.themeBreakdown.map(t=>{const c3=t.score>=70?'var(--green)':t.score>=45?'var(--gold)':'var(--red)';return`<div class="theme-bar-row"><div class="tbr-name">${t.name}</div><div style="flex:1;"><div class="tbr-bar"><div class="tbr-fill" style="width:${t.score}%;background:${c3};"></div></div><div class="tbr-key">${t.keyDriver||''}</div></div><div class="tbr-score" style="color:${c3};">${t.score}</div></div>`;}).join('')}</div>`:''}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px;"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--white);">관련 뉴스 (${(d.news||[]).length}건)</div><div style="display:flex;gap:6px;">${['전체','긍정','부정'].map((f,i)=>`<button onclick="filterSentNews('${['all','긍정','부정'][i]}',this)" style="padding:4px 11px;border-radius:99px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:${i===0?'rgba(14,165,233,.1)':'var(--bg3)'};color:${i===0?'var(--a2)':'var(--muted2)'};transition:all .2s;">${f}</button>`).join('')}</div></div>
+  <div id="sentNewsContainer">${buildNewsCards(d.news||[])}</div>
+  ${d.investmentImplication?`<div style="background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.15);border-radius:13px;padding:18px;margin-top:16px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;"><span style="font-size:16px;">💡</span><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--a2);">투자 시사점</div></div><div style="font-size:13px;color:var(--muted2);line-height:1.75;">${d.investmentImplication}</div><div style="margin-top:12px;"><button onclick="showView('builder')" class="btn-primary" style="font-size:12px;padding:9px 18px;">이 분석으로 ETF 빌더 시작 →</button></div></div>`:''}`;
+}
+
+function buildNewsCards(news){
+  return news.map((n,i)=>{
+    const c=n.sentiment==='긍정'?'var(--green)':n.sentiment==='부정'?'var(--red)':'var(--muted)';
+    const bg=n.sentiment==='긍정'?'rgba(16,185,129,.1)':n.sentiment==='부정'?'rgba(239,68,68,.1)':'rgba(107,136,168,.08)';
+    return `<div class="news-item" id="ni-${i}" onclick="toggleNews(${i})">
+      <div class="ni-bar" style="background:${c};"></div>
+      <div class="ni-top">
+        <div class="ni-score" style="background:${bg};"><div class="ni-sn" style="color:${c};">${n.score}</div><div class="ni-sl" style="color:${c};">SCORE</div></div>
+        <div style="flex:1;"><div class="ni-headline">${n.headline}</div><div class="ni-meta"><span class="ni-src">${n.source}</span><span style="color:var(--muted);">·</span><span class="ni-time">${n.timeAgo}</span><span class="ni-sent" style="color:${c};background:${bg};border:1px solid ${c}44;">${n.sentiment}</span></div></div>
+      </div>
+      <div class="ni-detail" id="nd-${i}">
+        ${n.summary?`<div class="ni-summary">${n.summary}</div>`:''}
+        ${n.stockImpacts?.length?`<div class="ni-impacts"><div class="ni-imp-title">종목 영향도</div>${n.stockImpacts.map(si=>{const ic=si.impact==='긍정적'?'var(--green)':si.impact==='부정적'?'var(--red)':'var(--muted2)';return`<div class="ni-imp-row"><span class="ni-imp-stock">${si.name} <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">${si.ticker}</span></span><span style="font-size:10px;color:var(--muted);">${si.reason}</span><span class="ni-imp-dir" style="color:${ic};">${si.impact==='긍정적'?'▲':'▼'} ${si.impact}</span></div>`;}).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleNews(i){
+  const d=document.getElementById(`nd-${i}`);const el=document.getElementById(`ni-${i}`);
+  if(!d)return;
+  const open=d.classList.contains('open');
+  document.querySelectorAll('.ni-detail').forEach(x=>x.classList.remove('open'));
+  document.querySelectorAll('.news-item').forEach(x=>x.classList.remove('expanded'));
+  if(!open){d.classList.add('open');el.classList.add('expanded');}
+}
+
+function filterSentNews(f,btn){
+  document.querySelectorAll('#sentResult button').forEach(b=>{if(['전체','긍정','부정'].some(t=>b.textContent===t)){b.style.background='var(--bg3)';b.style.color='var(--muted2)';}});
+  btn.style.background='rgba(14,165,233,.1)';btn.style.color='var(--a2)';
+  const news=sentimentState.result?.news||[];
+  const filtered=f==='all'?news:news.filter(n=>n.sentiment===f);
+  const c=document.getElementById('sentNewsContainer');
+  if(c)c.innerHTML=buildNewsCards(filtered);
+}
+
+// ══════════════════════════
+// BUILDER PAGE (실제 AI 작동)
+// ══════════════════════════
+function renderBuilderPage(){
+  const s=builderState;
+  const el=document.getElementById('view-builder');
+  el.innerHTML=`
+  <div style="margin-bottom:20px;"><div class="sec-label">ETF BUILDER</div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;">✨ ETF 빌더</div><div style="font-size:12px;color:var(--muted2);margin-top:4px;">4단계로 나만의 맞춤형 ETF를 만들어보세요.</div></div>
+  <div class="bsteps" id="bsteps">${buildBSteps(s.step)}</div>
+  <div id="bContent"></div>`;
+  renderBStep(s.step);
+}
+
+function buildBSteps(cur){
+  return ['테마 선택','시장 분석','조건 설정','포트폴리오'].map((t,i)=>{
+    const n=i+1;const cls=n<cur?'bsn-done':n===cur?'bsn-cur':'bsn-pend';
+    return `<div class="bstep"><div class="bstep-n ${cls}">${n<cur?'✓':n}</div><div class="bstep-txt ${n===cur?'cur':''}">${t}</div></div>${n<4?'<div class="bstep-line"></div>':''}`;
+  }).join('');
+}
+
+function renderBStep(n){
+  const s=builderState;
+  const c=document.getElementById('bContent');
+  if(!c)return;
+  if(n===1){
+    // Sentiment 연동 배너
+    const hasSent=sentimentState.result&&sentimentState.query;
+    c.innerHTML=`
+    <div class="panel">
+      <div class="panel-title">어떤 분야에 투자하고 싶으신가요?</div>
+      <div class="panel-sub">테마를 선택하면 AI가 관련 뉴스와 종목 데이터를 분석합니다.</div>
+      ${hasSent?`<div class="sent-bridge"><div class="sb-icon-wrap">🧠</div><div class="sb-info"><div class="sb-title">Sentiment 분석 결과 연동</div><div class="sb-sub">"${sentimentState.query}" — ${sentimentState.result.overallLabel} (${sentimentState.result.overallScore}점) · <a onclick="showView('sentiment')" style="color:var(--accent);cursor:pointer;">분석 보기</a></div></div><button onclick="useFromSentiment()" style="padding:7px 13px;background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.3);color:var(--a2);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">이 결과 활용하기</button></div>`:''}
+      <div class="theme-grid">${THEMES.map(t=>`<div class="theme-card ${s.themes.includes(t.id)?'sel':''}" id="tc-${t.id}" onclick="toggleTheme('${t.id}')"><div class="tc-emoji">${t.e}</div><div class="tc-name">${t.n}</div><div class="tc-desc">${t.d}</div>${s.themes.includes(t.id)?`<div style="margin-top:8px;font-size:9px;font-family:'DM Mono',monospace;color:var(--accent);">선택됨 ✓</div>`:''}</div>`).join('')}</div>
+      <button class="btn-next" id="b1next" onclick="bGoStep(2)" ${s.themes.length===0?'disabled':''}>시장 분석하기 →</button>
+    </div>`;
+  }else if(n===2){
+    const allS=s.themes.flatMap(id=>STOCKS[id]||[]).filter((x,i,a)=>a.findIndex(y=>y.t===x.t)===i);
+    const avgSent=sentimentState.result?sentimentState.result.overallScore:null;
+    const avgC=avgSent?(avgSent>=70?'var(--green)':avgSent>=45?'var(--gold)':'var(--red)'):null;
+    c.innerHTML=`
+    <div class="panel">
+      <div class="panel-header"><div><div class="panel-title">시장 현황</div><div class="panel-sub" style="margin:0;">선택 테마: ${s.themes.map(id=>THEMES.find(t=>t.id===id)?.n).join(', ')}</div></div>
+        ${avgSent?`<div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px;">AI SENTIMENT</div><div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:${avgC};">${avgSent}</div></div>`:''}
+      </div>
+      <div class="tab-row"><button class="tab-btn active" id="tb1" onclick="switchBTab('news')">📰 뉴스</button><button class="tab-btn" id="tb2" onclick="switchBTab('stocks')">📈 종목 (${allS.length})</button></div>
+      <div id="bNewsContent">${buildBuilderNews()}</div>
+      <div id="bStocksContent" style="display:none;">${buildStockTable(allS)}</div>
+      <div class="action-row"><button class="btn-back" onclick="bGoStep(1)">← 이전</button><button class="btn-next" onclick="bGoStep(3)">조건 설정하기 →</button></div>
+    </div>`;
+  }else if(n===3){
+    c.innerHTML=`
+    <div class="panel">
+      <div class="panel-title">투자 조건 설정</div>
+      <div class="panel-sub">자연어로 입력하거나 예시를 클릭하세요. AI가 자동으로 분석합니다.</div>
+      <div class="ex-chips">${NL_EX.map(e=>`<div class="ex-chip" onclick="document.getElementById('nlInp').value='${e}'">${e}</div>`).join('')}</div>
+      <div class="nl-box"><div class="nl-lbl">자연어 투자 조건</div><textarea class="nl-inp" id="nlInp" rows="3" placeholder="예: PER이 35 이하이고 ESG 점수 75 이상인 기업 위주로, 단일 종목 비중 15% 이하로 해줘."></textarea></div>
+      <div class="filter-bar">
+        <div class="fb-group"><div class="fb-lbl">MAX PER</div><input type="number" class="fb-input" id="fPER" placeholder="예: 40"></div>
+        <div class="fb-group"><div class="fb-lbl">MIN ESG</div><input type="number" class="fb-input" id="fESG" placeholder="예: 70"></div>
+        <div class="fb-group"><div class="fb-lbl">MAX 부채율 %</div><input type="number" class="fb-input" id="fDebt" placeholder="예: 40"></div>
+        <div class="fb-group"><div class="fb-lbl">MIN 여성임원 %</div><input type="number" class="fb-input" id="fFem" placeholder="예: 20"></div>
+        <div class="fb-group"><div class="fb-lbl">리스크 성향</div><select class="fb-select" id="fRisk"><option value="low">안정형</option><option value="medium" selected>균형형</option><option value="high">공격형</option></select></div>
+      </div>
+      <div id="parsedOut" style="${s.conditions?'':'display:none;'}">${s.conditions?buildParsedHTML(s.conditions):''}</div>
+      <div style="display:flex;gap:9px;margin-bottom:0;">
+        <button class="btn-back" onclick="bGoStep(2)">← 이전</button>
+        <button class="btn-ghost" onclick="doParseNL()" id="parseBtn" style="flex:1;">🔍 자연어 분석</button>
+        <button class="btn-next" onclick="bGoStep(4)" style="flex:2;">🚀 포트폴리오 생성</button>
+      </div>
+    </div>`;
+  }else if(n===4){
+    c.innerHTML=`<div id="portOut"><div class="loading-box"><div class="spinner"></div><div class="loading-title">포트폴리오 최적화 중...</div><div class="loading-sub">Sharpe Ratio 최적화 · 리스크 분산 계산</div><div class="prog-track"><div class="prog-fill"></div></div></div></div>`;
+    generatePortfolio();
+  }
+}
+
+function buildBuilderNews(){
+  const s=builderState;
+  if(sentimentState.result?.news?.length){
+    return buildNewsCards(sentimentState.result.news.slice(0,5));
+  }
+  const names=s.themes.map(id=>THEMES.find(t=>t.id===id)?.n).join(', ');
+  return `<div style="text-align:center;padding:24px;color:var(--muted);"><div style="font-size:13px;">Sentiment 분석을 먼저 실행하면 관련 뉴스가 여기에 표시됩니다.</div><button onclick="showView('sentiment')" style="margin-top:10px;padding:7px 14px;background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.2);color:var(--a2);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">Sentiment 분석 바로가기 →</button></div>`;
+}
+
+function buildStockTable(stocks){
+  if(!stocks.length)return'<div style="text-align:center;padding:20px;color:var(--muted);">선택한 테마에 해당하는 종목이 없습니다.</div>';
+  return `<div style="overflow-x:auto;"><p style="font-size:11px;color:var(--muted2);margin-bottom:10px;">체크하면 해당 종목만 포트폴리오에 포함됩니다. 미선택 시 전체 대상.</p>
+  <table class="stock-table"><thead><tr><th></th><th>종목</th><th>지역</th><th>PER</th><th>ESG</th><th>부채율</th><th>여성임원</th><th>1Y 수익률</th></tr></thead><tbody>
+  ${stocks.map(s=>{
+    const sel=builderState.stocks.includes(s.t);
+    return `<tr class="${sel?'sel-row':''}" onclick="toggleBStock('${s.t}')"><td><input type="checkbox" style="accent-color:var(--accent);" ${sel?'checked':''} onclick="event.stopPropagation();toggleBStock('${s.t}')"></td><td><div class="td-name">${s.n}</div><div class="td-ticker">${s.t} · ${s.s}</div></td><td style="font-size:10px;color:var(--muted2);">${s.r}</td><td class="td-num ${s.per&&s.per<35?'td-good':''}">${s.per||'N/A'}</td><td><div class="td-num ${s.esg>75?'td-good':''}">${s.esg}</div><div class="esg-mini"><div class="esg-mini-fill" style="width:${s.esg}%;background:${s.esg>75?'var(--green)':'var(--gold)'};"></div></div></td><td class="td-num ${s.debt<30?'td-good':'td-bad'}">${s.debt}%</td><td class="td-num ${s.fem>30?'td-good':''}">${s.fem}%</td><td class="${s.tr>=0?'td-up':'td-dn'}">${s.tr>=0?'+':''}${s.tr}%</td></tr>`;
+  }).join('')}
+  </tbody></table></div>`;
+}
+
+function toggleTheme(id){
+  builderState.themes=builderState.themes.includes(id)?builderState.themes.filter(x=>x!==id):[...builderState.themes,id];
+  document.querySelectorAll('[id^="tc-"]').forEach(el=>{const tid=el.id.replace('tc-','');el.className='theme-card'+(builderState.themes.includes(tid)?' sel':'');});
+  const btn=document.getElementById('b1next');if(btn)btn.disabled=builderState.themes.length===0;
+}
+
+function toggleBStock(t){
+  builderState.stocks=builderState.stocks.includes(t)?builderState.stocks.filter(x=>x!==t):[...builderState.stocks,t];
+  document.getElementById('bStocksContent').innerHTML=buildStockTable(builderState.themes.flatMap(id=>STOCKS[id]||[]).filter((x,i,a)=>a.findIndex(y=>y.t===x.t)===i));
+}
+
+function switchBTab(tab){
+  document.getElementById('bNewsContent').style.display=tab==='news'?'block':'none';
+  document.getElementById('bStocksContent').style.display=tab==='stocks'?'block':'none';
+  document.getElementById('tb1').className='tab-btn'+(tab==='news'?' active':'');
+  document.getElementById('tb2').className='tab-btn'+(tab==='stocks'?' active':'');
+}
+
+function bGoStep(n){
+  builderState.step=n;
+  document.getElementById('bsteps').innerHTML=buildBSteps(n);
+  renderBStep(n);
+}
+
+function useFromSentiment(){
+  const q=sentimentState.query;
+  // 쿼리에서 테마 추정
+  const map={ai:['AI','반도체','인공지능','테크'],eco:['친환경','재생에너지','ESG','탄소'],health:['헬스케어','바이오','제약'],finance:['금융','핀테크'],battery:['배터리','전기차','EV'],defense:['방산','우주']};
+  Object.entries(map).forEach(([id,kws])=>{if(kws.some(kw=>q.includes(kw))&&!builderState.themes.includes(id))builderState.themes.push(id);});
+  if(builderState.themes.length===0)builderState.themes=['ai'];
+  renderBStep(1);
+}
+
+async function doParseNL(){
+  const inp=document.getElementById('nlInp')?.value.trim();
+  if(!inp)return;
+  const btn=document.getElementById('parseBtn');
+  if(btn){btn.textContent='⏳ 분석 중...';btn.disabled=true;}
+  try{
+    const res=await claudeAPI({max_tokens:500,messages:[{role:'user',content:`투자 조건을 JSON으로만 파싱. JSON만 출력.\n입력: "${inp}"\n형식: {"maxPER":number|null,"minESG":number|null,"maxDebt":number|null,"minFemale":number|null,"maxWeight":number,"risk":"low"|"medium"|"high","summary":"한줄요약"}`}]});
+    const data=await res.json();
+    builderState.conditions=JSON.parse(data.content.find(c=>c.type==='text')?.text.replace(/```json|```/g,'').trim()||'{}');
+  }catch{builderState.conditions={maxPER:35,minESG:75,maxDebt:30,minFemale:25,maxWeight:15,risk:'medium',summary:'ESG 우수 + 재무 안정 기업 중심'};}
+  // Sync filters
+  const {maxPER,minESG,maxDebt,minFemale,maxWeight,risk}=builderState.conditions;
+  if(maxPER&&document.getElementById('fPER'))document.getElementById('fPER').value=maxPER;
+  if(minESG&&document.getElementById('fESG'))document.getElementById('fESG').value=minESG;
+  if(maxDebt&&document.getElementById('fDebt'))document.getElementById('fDebt').value=maxDebt;
+  if(minFemale&&document.getElementById('fFem'))document.getElementById('fFem').value=minFemale;
+  if(risk&&document.getElementById('fRisk'))document.getElementById('fRisk').value=risk;
+  const out=document.getElementById('parsedOut');
+  if(out){out.innerHTML=buildParsedHTML(builderState.conditions);out.style.display='block';}
+  if(btn){btn.textContent='✓ 완료 — 다시 분석';btn.disabled=false;}
+}
+
+function buildParsedHTML(conds){
+  if(!conds)return'';
+  const tags=[conds.maxPER&&`MAX PER: ${conds.maxPER}`,conds.minESG&&`MIN ESG: ${conds.minESG}`,conds.maxDebt&&`MAX 부채율: ${conds.maxDebt}%`,conds.minFemale&&`MIN 여성임원: ${conds.minFemale}%`,`MAX 단일비중: ${conds.maxWeight||15}%`,`리스크: ${conds.risk||'medium'}`].filter(Boolean);
+  return `<div class="parsed-box"><div class="pb-hdr"><span class="pb-ok">✓</span><span class="pb-title">조건 파싱 완료</span></div><div class="pb-summary">${conds.summary||''}</div><div class="pb-tags">${tags.map(t=>`<span class="pb-tag">${t}</span>`).join('')}</div></div>`;
+}
+
+async function generatePortfolio(){
+  const s=builderState;
+  const allS=s.themes.flatMap(id=>STOCKS[id]||[]).filter((x,i,a)=>a.findIndex(y=>y.t===x.t)===i);
+  const toUse=s.stocks.length>0?allS.filter(x=>s.stocks.includes(x.t)):allS.slice(0,8);
+  const maxW=s.conditions?.maxWeight||20;const risk=s.conditions?.risk||'medium';
+  try{
+    const res=await claudeAPI({max_tokens:1200,messages:[{role:'user',content:`포트폴리오 최적화. JSON만 출력.\n종목: ${JSON.stringify(toUse.map(x=>({ticker:x.t,name:x.n,per:x.per,esg:x.esg,debt:x.debt,fem:x.fem,yearlyReturn:x.tr})))}\n조건: ${JSON.stringify(s.conditions||{})}\n옵션: 최대종목수 ${Math.min(toUse.length,8)}, 단일비중 ${maxW}%, 리스크 ${risk}\n형식: {"etfName":"영어ETF이름","strategy":"전략설명(한국어)","holdings":[{"ticker":str,"name":str,"weight":num,"reason":str}],"metrics":{"expectedReturn":str,"sharpeRatio":str,"volatility":str,"maxDrawdown":str,"beta":str},"riskAnalysis":"리스크분석2문장","rebalancing":"리밸런싱규칙"}`}]});
+    const data=await res.json();
+    s.portfolio=JSON.parse(data.content.find(c=>c.type==='text')?.text.replace(/```json|```/g,'').trim()||'{}');
+  }catch{
+    const w=[30,25,20,15,10];
+    s.portfolio={etfName:'GENPORT Smart Alpha ETF',strategy:'ESG 우수 기업 중심의 균형형 포트폴리오',holdings:toUse.slice(0,5).map((x,i)=>({ticker:x.t,name:x.n,weight:w[i]||10,reason:'ESG 우수 및 재무 안정성 확인'})),metrics:{expectedReturn:'+11.2%',sharpeRatio:'1.38',volatility:'13.8%',maxDrawdown:'-7.2%',beta:'0.88'},riskAnalysis:'다각화된 포트폴리오로 단일 종목 리스크를 최소화했습니다.',rebalancing:'매월 1일 정기 리밸런싱, 비중 ±5% 이탈 시 즉시 조정'};
+  }
+  s.portfolio._themes=s.themes.map(id=>THEMES.find(t=>t.id===id)?.n).join(', ');
+  renderPortResult();
+}
+
+function renderPortResult(){
+  const p=builderState.portfolio;
+  const rc=p.metrics?.expectedReturn?.startsWith('+')?'var(--green)':'var(--red)';
+  document.getElementById('portOut').innerHTML=`
+  <div class="port-result-hero"><div class="prh-before"></div>
+    <div class="prh-name">${p.etfName}</div>
+    <div class="prh-strategy">${p.strategy}</div>
+    <div class="prh-metrics">
+      <div class="prh-m"><div class="prh-mv" style="color:${rc};">${p.metrics?.expectedReturn||'-'}</div><div class="prh-ml">예상 수익률</div></div>
+      <div class="prh-m"><div class="prh-mv" style="color:var(--accent);">${p.metrics?.sharpeRatio||'-'}</div><div class="prh-ml">샤프 비율</div></div>
+      <div class="prh-m"><div class="prh-mv" style="color:var(--gold);">${p.metrics?.volatility||'-'}</div><div class="prh-ml">변동성</div></div>
+      <div class="prh-m"><div class="prh-mv" style="color:var(--red);">${p.metrics?.maxDrawdown||'-'}</div><div class="prh-ml">MDD</div></div>
+      <div class="prh-m"><div class="prh-mv" style="color:var(--purple);">${p.metrics?.beta||'-'}</div><div class="prh-ml">베타</div></div>
+    </div>
+  </div>
+  <div class="panel"><div class="panel-title" style="margin-bottom:14px;">📊 자산 배분</div>${(p.holdings||[]).map((h,i)=>`<div class="alloc-row"><div class="alloc-hdr"><span class="alloc-name">${h.name} <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">${h.ticker}</span></span><span class="alloc-pct" style="color:${COLORS[i%COLORS.length]};">${h.weight}%</span></div><div class="alloc-track"><div class="alloc-fill" style="width:${h.weight}%;background:${COLORS[i%COLORS.length]};"></div></div></div>`).join('')}</div>
+  <div class="holding-list"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--white);margin-bottom:11px;">편입 종목 상세</div>${(p.holdings||[]).map((h,i)=>`<div class="h-item"><div class="h-dot" style="background:${COLORS[i%COLORS.length]};"></div><div class="h-name">${h.name}</div><div class="h-reason">${h.reason}</div><div class="h-pct" style="color:${COLORS[i%COLORS.length]};">${h.weight}%</div></div>`).join('')}</div>
+  ${p.riskAnalysis?`<div style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.12);border-radius:11px;padding:13px;margin-bottom:11px;"><div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;">⚠️ 리스크 분석</div><div style="font-size:12px;color:var(--muted2);line-height:1.6;">${p.riskAnalysis}</div></div>`:''}
+  <div class="rebal-box"><div class="rb-title">🔄 자동 리밸런싱</div><div class="rb-item"><span class="rb-dot">◈</span>${p.rebalancing||'매월 1일 정기 리밸런싱'}</div><div class="rb-item"><span class="rb-dot">◈</span>ESG 등급 하락 감지 시 자동 교체 검토</div><div class="rb-item"><span class="rb-dot">◈</span>지정학적 이벤트 발생 시 헤지 포지션 추가</div><div class="rb-item"><span class="rb-dot">◈</span><span class="api-stub">API STUB</span> 실거래 연동은 증권사 API 연동 후 활성화</div></div>
+  <div style="display:flex;gap:9px;"><button class="btn-back" onclick="bGoStep(3)">← 다시 설정</button><button class="btn-next" onclick="savePortfolio()">💼 포트폴리오 저장</button></div>
+  <div id="saveMsg"></div>`;
+}
+
+function savePortfolio(){
+  portfolios.push(builderState.portfolio);
+  localStorage.setItem('gp_portfolios',JSON.stringify(portfolios));
+  document.getElementById('saveMsg').innerHTML=`<div class="save-bar"><span style="font-size:16px;">✅</span><span style="font-size:13px;color:var(--green);">"${builderState.portfolio.etfName}" 저장 완료!</span><button class="sb-go" onclick="showView('portfolio')">포트폴리오 보기 →</button></div>`;
+  builderState={step:1,themes:[],stocks:[],conditions:null,portfolio:null};
+  renderDashboard();
+}
+
+// ══════════════════════════
+// PORTFOLIO PAGE
+// ══════════════════════════
+function renderPortfolioPage(){
+  const el=document.getElementById('view-portfolio');
+  el.innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div><div class="sec-label">MY PORTFOLIO</div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;">💼 내 포트폴리오</div></div>
+    <button class="btn-primary" onclick="showView('builder')" style="font-size:12px;padding:9px 16px;">+ 새 ETF</button>
+  </div>
+  ${portfolios.length===0?`<div style="text-align:center;padding:64px;color:var(--muted);"><div style="font-size:36px;margin-bottom:12px;">📂</div><div style="font-size:15px;color:var(--muted2);font-weight:600;margin-bottom:6px;">포트폴리오가 없습니다</div><div style="font-size:12px;line-height:1.6;margin-bottom:20px;">ETF 빌더를 사용해 첫 번째 포트폴리오를 만들어보세요</div><button class="btn-primary" onclick="showView('builder')">ETF 빌더 시작하기 →</button></div>`
+  :portfolios.map((p,i)=>`
+  <div class="port-card">
+    <div class="pc-top">
+      <div><div class="pc-name">${p.etfName||'My ETF'}</div><div class="pc-meta">${p._themes||''} · ${p.holdings?.length||0}개 종목</div></div>
+      <div class="pc-ret" style="color:var(--green);">${p.metrics?.expectedReturn||'-'}</div>
+    </div>
+    ${(p.holdings||[]).slice(0,3).map((h,j)=>`<div class="alloc-row"><div class="alloc-hdr"><span class="alloc-name">${h.name}</span><span class="alloc-pct" style="color:${COLORS[j]};">${h.weight}%</span></div><div class="alloc-track"><div class="alloc-fill" style="width:${h.weight}%;background:${COLORS[j]};"></div></div></div>`).join('')}
+    <div class="pc-tags">
+      <span class="tag" style="background:rgba(14,165,233,.1);color:var(--a2);border:1px solid rgba(14,165,233,.2);">샤프 ${p.metrics?.sharpeRatio||'-'}</span>
+      <span class="tag" style="background:rgba(14,165,233,.1);color:var(--a2);border:1px solid rgba(14,165,233,.2);">변동성 ${p.metrics?.volatility||'-'}</span>
+      <span class="tag" style="background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2);">MDD ${p.metrics?.maxDrawdown||'-'}</span>
+      <button onclick="deletePortfolio(${i})" style="margin-left:auto;padding:3px 9px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red);border-radius:6px;font-size:10px;cursor:pointer;">삭제</button>
+    </div>
+  </div>`).join('')}`;
+}
+
+function deletePortfolio(i){
+  if(!confirm('포트폴리오를 삭제할까요?'))return;
+  portfolios.splice(i,1);
+  localStorage.setItem('gp_portfolios',JSON.stringify(portfolios));
+  renderPortfolioPage();renderDashboard();
+}
+
+// ══════════════════════════
+// NEWS PAGE
+// ══════════════════════════
+function renderNewsPage(){
+  const el=document.getElementById('view-news');
+  const filters=['전체','AI/테크','친환경','헬스케어','금융'];
+  const allNews=sentimentHistory.length?sentimentHistory.flatMap(h=>h.news||[]):[];
+  el.innerHTML=`
+  <div style="margin-bottom:20px;"><div class="sec-label">NEWS FEED</div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;">📰 뉴스 피드</div><div style="font-size:12px;color:var(--muted2);margin-top:4px;">AI Sentiment 분석에서 생성된 뉴스를 모아봅니다.</div></div>
+  <div class="news-filters">${['전체','긍정','부정','중립'].map((f,i)=>`<div class="nf ${i===0?'active':''}" onclick="filterNewsPage('${['all','긍정','부정','중립'][i]}',this)">${f}</div>`).join('')}</div>
+  <div id="newsPageContent">
+    ${sentimentState.result?.news?.length
+      ?buildNewsCards(sentimentState.result.news)
+      :`<div style="text-align:center;padding:48px;color:var(--muted);"><div style="font-size:32px;margin-bottom:10px;">📰</div><div style="font-size:13px;color:var(--muted2);margin-bottom:14px;">Sentiment 분석을 실행하면 뉴스가 여기에 표시됩니다</div><button onclick="showView('sentiment')" class="btn-primary" style="font-size:12px;padding:9px 16px;">Sentiment 분석 시작 →</button></div>`}
+  </div>`;
+}
+
+function filterNewsPage(f,btn){
+  document.querySelectorAll('.nf').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const news=sentimentState.result?.news||[];
+  const filtered=f==='all'?news:news.filter(n=>n.sentiment===f);
+  const c=document.getElementById('newsPageContent');
+  if(c)c.innerHTML=filtered.length?buildNewsCards(filtered):'<div style="text-align:center;padding:32px;color:var(--muted);">해당 조건의 뉴스가 없습니다.</div>';
+}
+
+// ══════════════════════════
+// SCREENING PAGE
+// ══════════════════════════
+function renderScreeningPage(){
+  const el=document.getElementById('view-screening');
+  el.innerHTML=`
+  <div style="margin-bottom:20px;"><div class="sec-label">STOCK SCREENING</div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;">🔍 종목 스크리닝</div><div style="font-size:12px;color:var(--muted2);margin-top:4px;">조건을 입력해 원하는 종목을 찾아보세요. <span class="api-stub">API STUB</span> 실제 18,000개 종목은 API 연동 후 표시</div></div>
+  <div class="filter-bar" style="grid-template-columns:repeat(5,1fr);">
+    <div class="fb-group"><div class="fb-lbl">MAX PER</div><input type="number" class="fb-input" id="sPER" placeholder="예: 40" oninput="applyScreening()"></div>
+    <div class="fb-group"><div class="fb-lbl">MIN ESG</div><input type="number" class="fb-input" id="sESG" placeholder="예: 70" oninput="applyScreening()"></div>
+    <div class="fb-group"><div class="fb-lbl">MAX 부채율 %</div><input type="number" class="fb-input" id="sDebt" placeholder="예: 40" oninput="applyScreening()"></div>
+    <div class="fb-group"><div class="fb-lbl">MIN 여성임원 %</div><input type="number" class="fb-input" id="sFem" placeholder="예: 20" oninput="applyScreening()"></div>
+    <div class="fb-group"><div class="fb-lbl">지역</div><select class="fb-select" id="sRegion" onchange="applyScreening()"><option value="all">전체</option><option value="미국">미국</option><option value="한국">한국</option><option value="ex_us">미국 제외</option></select></div>
+  </div>
+  <div class="panel"><div id="screenList" style="overflow-x:auto;">${buildStockTable(ALL_STOCKS)}</div></div>`;
+}
+
+function applyScreening(){
+  const per=parseFloat(document.getElementById('sPER')?.value);
+  const esg=parseFloat(document.getElementById('sESG')?.value);
+  const debt=parseFloat(document.getElementById('sDebt')?.value);
+  const fem=parseFloat(document.getElementById('sFem')?.value);
+  const region=document.getElementById('sRegion')?.value;
+  const filtered=ALL_STOCKS.filter(s=>{
+    if(!isNaN(per)&&s.per&&s.per>per)return false;
+    if(!isNaN(esg)&&s.esg<esg)return false;
+    if(!isNaN(debt)&&s.debt>debt)return false;
+    if(!isNaN(fem)&&s.fem<fem)return false;
+    if(region==='미국'&&s.r!=='미국')return false;
+    if(region==='한국'&&s.r!=='한국')return false;
+    if(region==='ex_us'&&s.r==='미국')return false;
+    return true;
+  });
+  const c=document.getElementById('screenList');
+  if(c)c.innerHTML=buildStockTable(filtered)+'<div style="font-size:11px;color:var(--muted);margin-top:8px;font-family:\'DM Mono\',monospace;">'+filtered.length+'개 종목 표시 중</div>';
+}
+
+// ══════════════════════════
+// SETTINGS PAGE
+// ══════════════════════════
+function renderSettingsPage(){
+  const el=document.getElementById('view-settings');
+  el.innerHTML=`
+  <div style="margin-bottom:20px;"><div class="sec-label">ACCOUNT SETTINGS</div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-1px;">⚙️ 설정</div></div>
+  <div class="panel">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">계정 정보</div>
+    <div class="settings-row"><div><div class="sr-lbl">이름</div><div class="sr-desc">${user?.name||'-'}</div></div><button class="btn-ghost" style="font-size:11px;padding:5px 11px;">수정</button></div>
+    <div class="settings-row"><div><div class="sr-lbl">이메일</div><div class="sr-desc">${user?.email||'-'}</div></div></div>
+    <div class="settings-row"><div><div class="sr-lbl">요금제</div><div class="sr-desc">현재 무료 플랜 사용 중</div></div><span class="plan-tag">${user?.plan||'FREE'}</span></div>
+    <div class="settings-row"><div><div class="sr-lbl">가입일</div><div class="sr-desc">${user?.joined||'-'}</div></div></div>
+    <div class="settings-row"><div><div class="sr-lbl">로그인 방식</div><div class="sr-desc">${user?.provider==='Google'?'Google OAuth':user?.provider==='Kakao'?'카카오 OAuth':'이메일/비밀번호'} <span class="api-stub">실제 OAuth는 백엔드 구현 필요</span></div></div><span class="connected-tag">연결됨</span></div>
+  </div>
+  <div class="panel">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">알림 설정</div>
+    ${[['리밸런싱 알림','자동 리밸런싱 실행 시',true],['Sentiment 알림','시장 심리 급변 시',true],['ESG 등급 변동','편입 종목 ESG 변동 시',false],['주간 리포트 이메일','매주 월요일 포트폴리오 리포트',true]].map(([l,d,on])=>`<div class="settings-row"><div><div class="sr-lbl">${l}</div><div class="sr-desc">${d}</div></div><div class="toggle ${on?'on':''}" onclick="this.classList.toggle('on')"></div></div>`).join('')}
+  </div>
+  <div class="panel">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--white);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">구현 현황 <span class="api-stub">데모/투자자용</span></div>
+    ${[['✅ AI Sentiment 분석','Claude API 실제 연결됨'],['✅ 자연어 조건 파싱','Claude API 실제 연결됨'],['✅ 포트폴리오 AI 생성','Claude API 실제 연결됨'],['✅ 종목 스크리닝 필터','실제 필터링 작동'],['⚠️ 실시간 주가 데이터','Yahoo Finance API 연동 필요'],['⚠️ 실제 뉴스 피드','NewsAPI 또는 RSS 연동 필요'],['⚠️ Google/카카오 OAuth','Firebase Auth 구현 필요'],['⚠️ 포트폴리오 DB 저장','현재 localStorage만 가능'],['❌ 자동 리밸런싱 실행','백엔드 스케줄러 구현 필요'],['❌ 실거래 연동','증권사 API + 금융업 라이선스 필요']].map(([k,v])=>{const c=k.startsWith('✅')?'var(--green)':k.startsWith('⚠️')?'var(--gold)':'var(--red)';return`<div class="settings-row"><div><div class="sr-lbl" style="color:${c};">${k}</div><div class="sr-desc">${v}</div></div></div>`;}).join('')}
+  </div>
+  <div class="panel"><button onclick="doLogout()" style="width:100%;padding:11px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);color:var(--red);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;">로그아웃</button></div>`;
+}
+
+// ══════════════════════════
+// MISC
+// ══════════════════════════
+window.onclick=e=>{if(e.target===document.getElementById('authModal'))closeAuth();};
+</script>
+</body>
+</html>
