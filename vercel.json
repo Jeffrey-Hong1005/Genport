@@ -1,10 +1,7 @@
 {
   "functions": {
-    "api/claude.js": {
-      "maxDuration": 30
-    }
-  },
-  "rewrites": [
-    { "source": "/api/claude", "destination": "/api/claude" }
-  ]
+    "api/claude.js": { "maxDuration": 30 },
+    "api/news.js": { "maxDuration": 10 },
+    "api/stocks.js": { "maxDuration": 15 }
+  }
 }
