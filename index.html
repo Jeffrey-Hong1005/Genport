@@ -649,6 +649,44 @@ textarea.nl-inp::placeholder{color:var(--muted);}
 <!-- ════════════════════════════════════════════ -->
 <script>
 // ══════════════════════════
+// 앱 상태 변수 (APP STATE)
+// ══════════════════════════
+let user = null;
+let portfolios = [];
+let sentimentHistory = [];
+let builderState = { step:1, themes:[], stocks:[], conditions:null, portfolio:null };
+let sentimentState = { query:'', result:null };
+let currentView = 'dashboard';
+
+// 정적 데이터
+const THEMES=[
+  {id:'ai',e:'🤖',n:'AI / 테크',d:'인공지능, 반도체, 클라우드'},
+  {id:'eco',e:'🌿',n:'친환경 / ESG',d:'재생에너지, 전기차, 탄소중립'},
+  {id:'health',e:'💊',n:'헬스케어',d:'제약, 바이오, 의료기기'},
+  {id:'finance',e:'🏦',n:'금융 / 핀테크',d:'은행, 보험, 결제'},
+  {id:'battery',e:'🔋',n:'배터리 / EV',d:'전기차, 이차전지, 충전'},
+  {id:'defense',e:'🛡️',n:'방산 / 우주',d:'방위산업, 항공우주'},
+];
+const STOCKS={
+  ai:[{t:'NVDA',n:'NVIDIA',s:'반도체',r:'미국',per:35.2,esg:72,debt:18,fem:28,cap:'2.8T',tr:12.4},{t:'MSFT',n:'Microsoft',s:'소프트웨어',r:'미국',per:32.4,esg:88,debt:24,fem:33,cap:'3.1T',tr:8.2},{t:'GOOGL',n:'Alphabet',s:'인터넷',r:'미국',per:22.1,esg:75,debt:8,fem:30,cap:'2.1T',tr:5.7},{t:'005930',n:'삼성전자',s:'반도체',r:'한국',per:12.1,esg:81,debt:22,fem:19,cap:'380B',tr:3.1},{t:'AMD',n:'AMD',s:'반도체',r:'미국',per:42.1,esg:71,debt:14,fem:27,cap:'280B',tr:15.2},{t:'AAPL',n:'Apple',s:'하드웨어',r:'미국',per:28.6,esg:82,debt:20,fem:31,cap:'3.4T',tr:6.8}],
+  eco:[{t:'ENPH',n:'Enphase Energy',s:'태양광',r:'미국',per:18.4,esg:91,debt:12,fem:35,cap:'14B',tr:6.3},{t:'TSLA',n:'Tesla',s:'전기차',r:'미국',per:45.2,esg:69,debt:15,fem:24,cap:'780B',tr:11.2},{t:'BEP',n:'Brookfield Renew.',s:'재생에너지',r:'캐나다',per:28.1,esg:93,debt:45,fem:38,cap:'12B',tr:2.8},{t:'FSLR',n:'First Solar',s:'태양광',r:'미국',per:16.7,esg:88,debt:9,fem:29,cap:'18B',tr:4.5}],
+  health:[{t:'LLY',n:'Eli Lilly',s:'제약',r:'미국',per:52.3,esg:79,debt:28,fem:41,cap:'720B',tr:18.3},{t:'UNH',n:'UnitedHealth',s:'보험',r:'미국',per:19.8,esg:74,debt:35,fem:37,cap:'480B',tr:4.1},{t:'068270',n:'셀트리온',s:'바이오',r:'한국',per:38.2,esg:70,debt:19,fem:25,cap:'28B',tr:7.6},{t:'NVO',n:'Novo Nordisk',s:'제약',r:'덴마크',per:44.1,esg:85,debt:22,fem:43,cap:'420B',tr:14.2}],
+  finance:[{t:'JPM',n:'JPMorgan',s:'은행',r:'미국',per:12.4,esg:71,debt:0,fem:30,cap:'590B',tr:8.2},{t:'V',n:'Visa',s:'결제',r:'미국',per:31.2,esg:81,debt:18,fem:38,cap:'540B',tr:9.4},{t:'055550',n:'신한금융',s:'금융',r:'한국',per:8.2,esg:78,debt:0,fem:22,cap:'22B',tr:3.4}],
+  battery:[{t:'373220',n:'LG에너지솔루션',s:'배터리',r:'한국',per:68.2,esg:74,debt:32,fem:18,cap:'68B',tr:-4.2},{t:'CATL',n:'CATL',s:'배터리',r:'중국',per:24.1,esg:65,debt:28,fem:20,cap:'148B',tr:-8.1},{t:'ALB',n:'Albemarle',s:'리튬',r:'미국',per:null,esg:72,debt:38,fem:33,cap:'7.8B',tr:-22.4}],
+  defense:[{t:'LMT',n:'Lockheed Martin',s:'방산',r:'미국',per:17.2,esg:58,debt:44,fem:24,cap:'108B',tr:12.8},{t:'RTX',n:'RTX Corp',s:'방산',r:'미국',per:32.1,esg:61,debt:38,fem:28,cap:'148B',tr:9.4}],
+};
+const ALL_STOCKS=Object.values(STOCKS).flat().filter((s,i,a)=>a.findIndex(x=>x.t===s.t)===i);
+const COLORS=['#0ea5e9','#10b981','#f59e0b','#a78bfa','#f87171','#38bdf8','#34d399','#fb923c'];
+const NL_EX=['PER 35 이하, ESG 75점 이상','여성 임원 30% 이상, 부채비율 낮게','미국 제외, 변동성 낮게','단일 종목 15% 이하, 공격형','ESG 최우선, 탄소중립만'];
+
+// 초기화
+(function(){
+  buildTicker();
+  const saved = localStorage.getItem('gp_user');
+  if(saved){ user=JSON.parse(saved); portfolios=JSON.parse(localStorage.getItem('gp_portfolios')||'[]'); afterLogin(); }
+})();
+
+// ══════════════════════════
 // ⚙️ API 헬퍼 함수들
 // ══════════════════════════
 function claudeAPI(body) {
