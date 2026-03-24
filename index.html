@@ -1432,5 +1432,131 @@ function renderSettingsPage(){
 // ══════════════════════════
 window.onclick=e=>{if(e.target===document.getElementById('authModal'))closeAuth();};
 </script>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc }
+  from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDK2edTj0WxcqjMthWIM-hXXuurSoHxneE",
+  authDomain: "genport-aiportfolio.firebaseapp.com",
+  projectId: "genport-aiportfolio",
+  storageBucket: "genport-aiportfolio.firebasestorage.app",
+  messagingSenderId: "209931039751",
+  appId: "1:209931039751:web:382f2d20536d367cb326a2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ── Google 로그인 ──
+window.doSocial = async function(provider) {
+  if (provider !== 'Google') {
+    alert('카카오 로그인은 준비 중입니다. Google로 로그인해주세요.');
+    return;
+  }
+  try {
+    const result = await signInWithPopup(auth, new GoogleAuthProvider());
+    const u = result.user;
+    user = {
+      name: u.displayName || 'Google 사용자',
+      email: u.email,
+      plan: 'FREE',
+      provider: 'Google',
+      avatar: (u.displayName || 'G')[0].toUpperCase(),
+      uid: u.uid,
+      joined: new Date().toLocaleDateString('ko-KR')
+    };
+    await setDoc(doc(db, 'users', u.uid), {
+      name: user.name, email: user.email, plan: user.plan,
+      joined: user.joined, updatedAt: new Date().toISOString()
+    }, { merge: true });
+    localStorage.setItem('gp_user', JSON.stringify(user));
+    await loadPortfoliosFromDB(u.uid);
+    closeAuth();
+    afterLogin();
+  } catch(e) {
+    console.error('Google 로그인 실패:', e);
+    alert('로그인 실패. 다시 시도해주세요.\n(팝업 차단을 해제해주세요)');
+  }
+};
+
+// ── 포트폴리오 저장 ──
+window.savePortfolio = async function() {
+  const portfolio = builderState.portfolio;
+  portfolios.push(portfolio);
+  if (user?.uid) {
+    try {
+      const id = 'p_' + Date.now();
+      portfolio._id = id;
+      await setDoc(doc(db, 'users', user.uid, 'portfolios', id), {
+        ...portfolio, createdAt: new Date().toISOString()
+      });
+    } catch(e) { console.error('저장 실패:', e); }
+  }
+  localStorage.setItem('gp_portfolios', JSON.stringify(portfolios));
+  document.getElementById('saveMsg').innerHTML=`<div class="save-bar"><span style="font-size:16px;">✅</span><span style="font-size:13px;color:var(--green);">"${portfolio.etfName}" 저장 완료!</span><button class="sb-go" onclick="showView('portfolio')">포트폴리오 보기 →</button></div>`;
+  builderState={step:1,themes:[],stocks:[],conditions:null,portfolio:null};
+  renderDashboard();
+};
+
+// ── 포트폴리오 불러오기 ──
+async function loadPortfoliosFromDB(uid) {
+  try {
+    const snapshot = await getDocs(collection(db, 'users', uid, 'portfolios'));
+    const data = snapshot.docs.map(d => d.data());
+    if (data.length > 0) {
+      portfolios = data;
+      localStorage.setItem('gp_portfolios', JSON.stringify(portfolios));
+    }
+  } catch(e) { console.error('불러오기 실패:', e); }
+}
+
+// ── 포트폴리오 삭제 ──
+window.deletePortfolio = async function(i) {
+  if(!confirm('포트폴리오를 삭제할까요?')) return;
+  const p = portfolios[i];
+  if (user?.uid && p._id) {
+    try { await deleteDoc(doc(db, 'users', user.uid, 'portfolios', p._id)); }
+    catch(e) { console.error('삭제 실패:', e); }
+  }
+  portfolios.splice(i, 1);
+  localStorage.setItem('gp_portfolios', JSON.stringify(portfolios));
+  renderPortfolioPage(); renderDashboard();
+};
+
+// ── 로그아웃 ──
+window.doLogout = async function() {
+  try { await signOut(auth); } catch(e) {}
+  localStorage.removeItem('gp_user');
+  localStorage.removeItem('gp_portfolios');
+  user = null; portfolios = [];
+  document.getElementById('navRight').innerHTML=`<button class="btn-outline-sm" onclick="openAuth('login')">로그인</button><button class="btn-cta" onclick="openAuth('signup')">무료 시작</button>`;
+  document.getElementById('navLinks').innerHTML=`<li class="nav-link" onclick="scrollTo2('how')">서비스 소개</li><li class="nav-link" onclick="scrollTo2('features')">주요 기능</li><li class="nav-link" onclick="scrollTo2('pricing')">요금제</li>`;
+  route('landing');
+};
+
+// ── 로그인 상태 자동 감지 ──
+onAuthStateChanged(auth, async (firebaseUser) => {
+  if (firebaseUser && !user) {
+    user = {
+      name: firebaseUser.displayName || 'Google 사용자',
+      email: firebaseUser.email,
+      plan: 'FREE',
+      provider: 'Google',
+      avatar: (firebaseUser.displayName || 'G')[0].toUpperCase(),
+      uid: firebaseUser.uid,
+      joined: new Date().toLocaleDateString('ko-KR')
+    };
+    localStorage.setItem('gp_user', JSON.stringify(user));
+    await loadPortfoliosFromDB(firebaseUser.uid);
+    afterLogin();
+  }
+});
+</script>
 </body>
 </html>
